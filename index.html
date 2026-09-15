@@ -141,6 +141,13 @@
                     <div id="gameEmpty" class="game-empty">Choose a game to start playing.</div>
                     <iframe id="gameFrame" title="Embedded game" allowfullscreen hidden></iframe>
                 </div>
+                <form id="gameAdminForm" class="game-admin" hidden>
+                    <h2>Add game</h2>
+                    <input id="gameNameInput" type="text" maxlength="100" placeholder="Game name" required />
+                    <input id="gameUrlInput" type="url" placeholder="Game URL (https://...)" required />
+                    <button type="submit"><span class="btn-icon icon-save"></span>Add Game</button>
+                    <p id="gameAdminStatus" class="game-admin-status" aria-live="polite"></p>
+                </form>
             </div>
         </section>
         <section id="musicView" class="panel music-panel" aria-labelledby="music-heading" hidden>

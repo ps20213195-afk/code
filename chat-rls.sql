@@ -49,3 +49,24 @@ on public.music for insert to authenticated
 with check (created_by = auth.uid() and auth.uid() = '13df2e26-2285-43de-855d-ba42c9c9ff8d'::uuid);
 
 grant select, insert on table public.music to authenticated;
+
+create table if not exists public.games (
+	id uuid primary key default gen_random_uuid(),
+	name text not null,
+	url text not null,
+	created_by uuid not null references auth.users(id),
+	created_at timestamptz not null default now()
+);
+
+alter table public.games enable row level security;
+
+drop policy if exists "Authenticated users can read games" on public.games;
+create policy "Authenticated users can read games"
+on public.games for select to authenticated using (true);
+
+drop policy if exists "Admin can add games" on public.games;
+create policy "Admin can add games"
+on public.games for insert to authenticated
+with check (created_by = auth.uid() and auth.uid() = '13df2e26-2285-43de-855d-ba42c9c9ff8d'::uuid);
+
+grant select, insert on table public.games to authenticated;
