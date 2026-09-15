@@ -483,11 +483,16 @@ html[data-theme="sunset"] {
     min-height: 0;
 }
 #authSection {
-    width: min(100% - 32px, 520px);
-    margin: auto;
-    align-self: center;
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    display: grid;
+    place-items: center;
+    width: auto;
+    margin: 0;
+    align-self: stretch;
 }
 #authSection .box {
+    width: min(100% - 32px, 520px);
     margin: 0;
     padding: 24px;
 }
