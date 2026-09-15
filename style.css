@@ -266,7 +266,7 @@ body {
     color: var(--color-text);
     padding: var(--page-padding);
     display: grid;
-    grid-template-columns: 86px minmax(0, 1fr) minmax(var(--sidebar-min-width), var(--sidebar-max-width));
+    grid-template-columns: 86px minmax(0, 1fr);
     grid-template-rows: 1fr auto;
     gap: var(--page-gap);
 }
