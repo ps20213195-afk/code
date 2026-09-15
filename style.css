@@ -311,7 +311,11 @@ body {
 .icon-chat { background-image: url('https://cdn.jsdelivr.net/npm/pixelarticons@1.8.1/svg/message.svg'); }
 .icon-settings { background-image: url('https://cdn.jsdelivr.net/npm/pixelarticons@1.8.1/svg/sliders.svg'); }
 .icon-games { background-image: url('https://cdn.jsdelivr.net/npm/pixelarticons@1.8.1/svg/gamepad.svg'); }
-.icon-music { background-image: url('https://cdn.jsdelivr.net/npm/pixelarticons@1.8.1/svg/music.svg'); }
+.icon-music { position: relative; color: var(--color-heading); background-image: none; }
+.icon-music::before,
+.icon-music::after { content: ''; position: absolute; display: block; background: currentColor; }
+.icon-music::before { top: 4px; left: 9px; width: 4px; height: 17px; box-shadow: 11px -4px 0 currentColor; }
+.icon-music::after { bottom: 4px; left: 3px; width: 11px; height: 7px; border-radius: 50%; box-shadow: 11px -4px 0 currentColor; }
 .view-content { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--page-gap); min-height: 0; }
 .view-content { height: 100%; }
 .view-content[hidden] { display: none; }
