@@ -111,6 +111,7 @@ chatElements.tabs.forEach((tab) => {
       .forEach((view) => {
         view.hidden = view !== selectedView;
       });
+    if (!isGames) window.closeActiveGame?.();
     if (isChat) {
       loadChat();
       chatElements.input.focus();

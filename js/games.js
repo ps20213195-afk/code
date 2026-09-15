@@ -1,5 +1,7 @@
 const embeddedGames = [
-  { name: 'Poxel.io', url: 'https://poxel.io/' }
+  { name: 'Poxel.io', url: 'https://poxel.io/' },
+  { name: 'Bloxd.io', url: 'https://bloxd.io/' },
+  { name: 'Shell Shockers', url: 'https://shellshock.io/' }
 ];
 
 const gamesList = document.getElementById('gamesList');
@@ -16,6 +18,19 @@ function selectGame(game, button) {
   gameFrame.hidden = false;
   gameFrame.src = game.url;
 }
+
+function closeActiveGame() {
+  if (document.fullscreenElement === document.querySelector('.game-frame-wrap')) {
+    document.exitFullscreen().catch(() => {});
+  }
+  gameFrame.src = 'about:blank';
+  gameFrame.hidden = true;
+  gameEmpty.hidden = false;
+  gameTitle.textContent = 'Select a game';
+  document.querySelectorAll('.game-choice').forEach((item) => item.classList.remove('is-active'));
+}
+
+window.closeActiveGame = closeActiveGame;
 
 embeddedGames.forEach((game) => {
   const button = document.createElement('button');
