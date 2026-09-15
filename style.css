@@ -520,7 +520,7 @@ body.is-authenticated #authSection { display: none; }
     justify-items: end;
     gap: var(--build-gap);
     font-family: 'capsmall', sans-serif;
-    font-size: calc(0.75rem * var(--font-multiplier));
+    font-size: calc(0.6rem * var(--font-multiplier));
     pointer-events: none;
     z-index: 10;
     color: white;
