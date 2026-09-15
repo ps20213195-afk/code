@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYBASE M093A V3.1</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="./style.css?v=20260915">
+</head>
+<body>
+    <nav id="viewTabs" class="view-tabs" aria-label="Main views">
+        <button type="button" class="view-tab is-active" data-view="achievements" aria-selected="true">
+            <span class="view-tab-icon icon-achievements" aria-hidden="true"></span>
+            <span>Achievements</span>
+        </button>
+        <button type="button" class="view-tab" data-view="chat" aria-selected="false">
+            <span class="view-tab-icon icon-chat" aria-hidden="true"></span>
+            <span>Chat</span>
+        </button>
+        <button type="button" class="view-tab" data-view="settings" aria-selected="false">
+            <span class="view-tab-icon icon-settings" aria-hidden="true"></span>
+            <span>Settings</span>
+        </button>
+        <button type="button" class="view-tab" data-view="games" aria-selected="false">
+            <span class="view-tab-icon icon-games" aria-hidden="true"></span>
+            <span>Games</span>
+        </button>
+    </nav>
+    <main class="page">
+        <div id="achievementsView" class="view-content is-visible">
+        <section class="panel" aria-labelledby="achievements-heading">
+            <div class="panel-header">
+                <h1 id="achievements-heading">Achievements</h1>
+                <div id="scoreTracker" class="score-tracker">Points: 0 / 0</div>
+            </div>
+            <div class="panel-body">
+                <div id="achievementsGrid" class="achievements-grid" aria-live="polite"></div>
+            </div>
+        </section>
+        <section class="panel" aria-labelledby="milestones-heading">
+            <div class="panel-header">
+                <h1 id="milestones-heading">Milestones</h1>
+            </div>
+            <div class="panel-body">
+                <div id="milestonesGrid" class="milestones-grid" aria-live="polite"></div>
+            </div>
+        </section>
+        </div>
+        <section id="chatView" class="panel chat-panel" aria-labelledby="chat-heading" hidden>
+            <div class="panel-header">
+                <h1 id="chat-heading">Chat</h1>
+                <span id="chatStatus" class="chat-status">Loading...</span>
+            </div>
+            <div class="panel-body chat-body">
+                <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+                <form id="chatForm" class="chat-form">
+                    <label class="sr-only" for="chatInput">Message</label>
+                    <input id="chatInput" type="text" maxlength="500" placeholder="Write a message..." autocomplete="off" required />
+                    <button type="submit" id="chatSendBtn"><span class="btn-icon icon-save"></span>Send</button>
+                </form>
+            </div>
+        </section>
+        <section id="settingsView" class="panel settings-panel" aria-labelledby="settings-heading" hidden>
+            <div class="panel-header">
+                <h1 id="settings-heading">Settings</h1>
+            </div>
+            <div class="panel-body settings-body">
+                <label for="themeSetting">Theme</label>
+                <select id="themeSetting">
+                    <option value="classic">Classic</option>
+                    <option value="midnight">Midnight</option>
+                    <option value="sunset">Sunset</option>
+                </select>
+                <label for="fontSetting">Font</label>
+                <select id="fontSetting">
+                    <option value="capsmall">Pixel Caps</option>
+                    <option value="lowsmall">Pixel Small</option>
+                    <option value="lowbig">Pixel Big</option>
+                </select>
+                <label for="textSizeSetting">Text Size</label>
+                <select id="textSizeSetting">
+                    <option value="1">Normal</option>
+                    <option value="1.15">Large</option>
+                    <option value="1.3">Extra Large</option>
+                </select>
+                <label class="settings-check" for="motionSetting">
+                    <input type="checkbox" id="motionSetting" checked /> Enable motion
+                </label>
+                <button type="button" id="resetSettingsBtn" class="btn-secondary">Reset Settings</button>
+            </div>
+        </section>
+        <section id="gamesView" class="panel games-panel" aria-labelledby="games-heading" hidden>
+            <div class="panel-header">
+                <h1 id="games-heading">Games</h1>
+                <div class="games-header-actions">
+                    <span id="gameTitle" class="chat-status">Select a game</span>
+                    <button type="button" id="fullscreenGameBtn" class="icon-button" title="Enter fullscreen" aria-label="Enter fullscreen">⛶</button>
+                </div>
+            </div>
+            <div class="games-body">
+                <div id="gamesList" class="games-list" aria-label="Available games"></div>
+                <div class="game-frame-wrap">
+                    <div id="gameEmpty" class="game-empty">Choose a game to start playing.</div>
+                    <iframe id="gameFrame" title="Embedded game" allowfullscreen hidden></iframe>
+                </div>
+            </div>
+        </section>
+    </main> 
+    <aside id="accountManagement" aria-label="Account Management">
+        <div id="authSection" class="box">
+            <h3 id="authSectionHeader">Account Management</h3>
+            <input type="email" id="email" placeholder="Email (e.g. test@game.com)" />
+            <input type="password" id="password" placeholder="Password (min 6 chars)" />
+            <input type="text" id="username" placeholder="Username (e.g. DragonSlayer)" />
+            <input type="text" id="flair" placeholder="Flair (e.g. VIP Member)" />
+            <button id="signUpBtn"><span class="btn-icon icon-signup"></span>Create Account</button>
+            <button id="signInBtn" class="btn-secondary"><span class="btn-icon icon-signin"></span>Sign In with Email</button>
+            <button id="googleSignInBtn" class="btn-secondary"><span class="btn-icon icon-google"></span>Sign In with Google</button>
+        </div>
+
+        <div id="profileSection" class="box" style="display:none;">
+            <div class="user-header">
+                <span id="authBadge" class="btn-icon"></span>
+                <p><span id="displayUsername" class="user-stuffs">Loading...</span></p>
+            </div>
+            <p><span id="displayFlair" class="user-stuffs profile-flair">Loading...</span></p>
+            <div id="addPasswordContainer" style="display:none;">
+                <hr />
+                <input type="password" id="newPasswordInput" placeholder="New Password (min 6 chars)" />
+                <button id="addPasswordBtn"><span class="btn-icon icon-signup"></span>Add Password to Account</button>
+            </div>
+            <hr />
+            <input type="text" id="editUsername" placeholder="New Username" />
+            <input type="text" id="editFlair" placeholder="New Flair" />
+            <label class="flair-color-control" for="editFlairColor">Flair Color</label>
+            <input type="color" id="editFlairColor" value="#000000" title="Choose flair color" />
+            <button id="updateProfileBtn"><span class="btn-icon icon-save"></span>Save Profile Changes</button>
+            <button id="refreshBtn" class="btn-secondary"><span class="btn-icon icon-refresh"></span>Reload Profile Data</button>
+            <button id="deleteAccountBtn" class="btn-danger"><span class="btn-icon icon-delete"></span>Delete Account</button>
+            <button id="signOutBtn"><span class="btn-icon icon-signout"></span>Sign Out</button>
+        </div>
+    </aside>
+    <div id="popupStack" class="popup-stack" aria-live="assertive" aria-atomic="false"></div>
+    <p class="build-indicator" aria-label="Build information">
+        <span>programmed by <strike>conan</strike> hugo</span>
+        <span id="versionIndicator">build unknown</span>
+    </p>
+    <!-- data parsers here -->
+    <script src="./parsers/metajson.js"></script>
+    <script src="./parsers/config.js"></script>
+    <script src="./js/loaders.js"></script>
+    <!-- core scripts + utils here -->
+    <script src="./js/utils.js"></script>
+    <script src="./js/renderers.js"></script>
+    <script src="./js/achievements.js"></script>
+    <script src="./js/auth.js"></script>
+    <script src="./js/chat.js"></script>
+    <script src="./js/settings.js"></script>
+    <script src="./js/games.js"></script>
+</body>
+</html>
