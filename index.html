@@ -9,6 +9,18 @@
     <link rel="stylesheet" href="./style.css?v=20260915">
 </head>
 <body>
+    <section id="authSection" class="auth-page" aria-labelledby="authSectionHeader">
+        <div class="box">
+            <h1 id="authSectionHeader">Account Management</h1>
+            <input type="email" id="email" placeholder="Email (e.g. test@game.com)" />
+            <input type="password" id="password" placeholder="Password (min 6 chars)" />
+            <input type="text" id="username" placeholder="Username (e.g. DragonSlayer)" />
+            <input type="text" id="flair" placeholder="Flair (e.g. VIP Member)" />
+            <button id="signUpBtn"><span class="btn-icon icon-signup"></span>Create Account</button>
+            <button id="signInBtn" class="btn-secondary"><span class="btn-icon icon-signin"></span>Sign In with Email</button>
+            <button id="googleSignInBtn" class="btn-secondary"><span class="btn-icon icon-google"></span>Sign In with Google</button>
+        </div>
+    </section>
     <nav id="viewTabs" class="view-tabs" aria-label="Main views">
         <button type="button" class="view-tab is-active" data-view="chat" aria-selected="true">
             <span class="view-tab-icon icon-chat" aria-hidden="true"></span>
@@ -92,6 +104,27 @@
                     <input type="checkbox" id="motionSetting" checked /> Enable motion
                 </label>
                 <button type="button" id="resetSettingsBtn" class="btn-secondary">Reset Settings</button>
+                <div id="profileSection" class="box" hidden>
+                    <div class="user-header">
+                        <span id="authBadge" class="btn-icon"></span>
+                        <p><span id="displayUsername" class="user-stuffs">Loading...</span></p>
+                    </div>
+                    <p><span id="displayFlair" class="user-stuffs profile-flair">Loading...</span></p>
+                        <div id="addPasswordContainer" style="display:none;">
+                        <hr />
+                        <input type="password" id="newPasswordInput" placeholder="New Password (min 6 chars)" />
+                        <button id="addPasswordBtn"><span class="btn-icon icon-signup"></span>Add Password to Account</button>
+                    </div>
+                    <hr />
+                    <input type="text" id="editUsername" placeholder="New Username" />
+                    <input type="text" id="editFlair" placeholder="New Flair" />
+                    <label class="flair-color-control" for="editFlairColor">Flair Color</label>
+                    <input type="color" id="editFlairColor" value="#000000" title="Choose flair color" />
+                    <button id="updateProfileBtn"><span class="btn-icon icon-save"></span>Save Profile Changes</button>
+                    <button id="refreshBtn" class="btn-secondary"><span class="btn-icon icon-refresh"></span>Reload Profile Data</button>
+                    <button id="deleteAccountBtn" class="btn-danger"><span class="btn-icon icon-delete"></span>Delete Account</button>
+                    <button id="signOutBtn"><span class="btn-icon icon-signout"></span>Sign Out</button>
+                </div>
             </div>
         </section>
         <section id="gamesView" class="panel games-panel" aria-labelledby="games-heading" hidden>
@@ -142,40 +175,6 @@
             </div>
         </section>
     </main> 
-    <aside id="accountManagement" aria-label="Account Management">
-        <div id="authSection" class="box">
-            <h3 id="authSectionHeader">Account Management</h3>
-            <input type="email" id="email" placeholder="Email (e.g. test@game.com)" />
-            <input type="password" id="password" placeholder="Password (min 6 chars)" />
-            <input type="text" id="username" placeholder="Username (e.g. DragonSlayer)" />
-            <input type="text" id="flair" placeholder="Flair (e.g. VIP Member)" />
-            <button id="signUpBtn"><span class="btn-icon icon-signup"></span>Create Account</button>
-            <button id="signInBtn" class="btn-secondary"><span class="btn-icon icon-signin"></span>Sign In with Email</button>
-            <button id="googleSignInBtn" class="btn-secondary"><span class="btn-icon icon-google"></span>Sign In with Google</button>
-        </div>
-
-        <div id="profileSection" class="box" style="display:none;">
-            <div class="user-header">
-                <span id="authBadge" class="btn-icon"></span>
-                <p><span id="displayUsername" class="user-stuffs">Loading...</span></p>
-            </div>
-            <p><span id="displayFlair" class="user-stuffs profile-flair">Loading...</span></p>
-            <div id="addPasswordContainer" style="display:none;">
-                <hr />
-                <input type="password" id="newPasswordInput" placeholder="New Password (min 6 chars)" />
-                <button id="addPasswordBtn"><span class="btn-icon icon-signup"></span>Add Password to Account</button>
-            </div>
-            <hr />
-            <input type="text" id="editUsername" placeholder="New Username" />
-            <input type="text" id="editFlair" placeholder="New Flair" />
-            <label class="flair-color-control" for="editFlairColor">Flair Color</label>
-            <input type="color" id="editFlairColor" value="#000000" title="Choose flair color" />
-            <button id="updateProfileBtn"><span class="btn-icon icon-save"></span>Save Profile Changes</button>
-            <button id="refreshBtn" class="btn-secondary"><span class="btn-icon icon-refresh"></span>Reload Profile Data</button>
-            <button id="deleteAccountBtn" class="btn-danger"><span class="btn-icon icon-delete"></span>Delete Account</button>
-            <button id="signOutBtn"><span class="btn-icon icon-signout"></span>Sign Out</button>
-        </div>
-    </aside>
     <div id="popupStack" class="popup-stack" aria-live="assertive" aria-atomic="false"></div>
     <p class="build-indicator" aria-label="Build information">
         <span>programmed by <strike>conan</strike> hugo</span>

@@ -175,16 +175,18 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
   printLog(`Auth Event: ${event}`);
   
   if (session) {
-    document.getElementById('authSection').style.display = 'none';
-    document.getElementById('profileSection').style.display = 'block';
+    document.body.classList.add('is-authenticated');
+    document.getElementById('authSection').hidden = true;
+    document.getElementById('profileSection').hidden = false;
     
     // Evaluate providers & badge state
     updateAuthBadgesAndProviders(session.user);
 
     await fetchProfile(session.user.id);
   } else {
-    document.getElementById('authSection').style.display = 'block';
-    document.getElementById('profileSection').style.display = 'none';
+    document.body.classList.remove('is-authenticated');
+    document.getElementById('authSection').hidden = false;
+    document.getElementById('profileSection').hidden = true;
     printLog("No user logged in (INITIAL_SESSION null). Fill form and click Sign Up.");
     showPopup("Sign in or create an account to start!", 'info');
   }
@@ -206,17 +208,17 @@ function updateAuthBadgesAndProviders(user) {
   if (hasGoogle && hasEmail) {
     // google + email&pass
     badgeEl.classList.add('badge-gmail');
-    addPwContainer.style.display = 'none';
+      addPwContainer.hidden = true;
     printLog("Provider Detected: Google + Password (badge-gmail)");
   } else if (hasGoogle) {
     // google. just google oauth
     badgeEl.classList.add('badge-google');
-    addPwContainer.style.display = 'block';
+      addPwContainer.hidden = false;
     printLog("Provider Detected: Pure Google OAuth (badge-google)");
   } else {
     // email&pass
     badgeEl.classList.add('badge-mail');
-    addPwContainer.style.display = 'none';
+      addPwContainer.hidden = true;
     printLog("Provider Detected: Standard Email (badge-mail)");
   }
 }

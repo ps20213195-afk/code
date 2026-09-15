@@ -482,6 +482,29 @@ html[data-theme="sunset"] {
 #profileSection {
     min-height: 0;
 }
+#authSection {
+    width: min(100% - 32px, 520px);
+    margin: auto;
+    align-self: center;
+}
+#authSection .box {
+    margin: 0;
+    padding: 24px;
+}
+#authSectionHeader { margin: 0 0 16px; }
+body:not(.is-authenticated) #viewTabs,
+body:not(.is-authenticated) .page,
+body:not(.is-authenticated) .build-indicator {
+    display: none;
+}
+body.is-authenticated #authSection { display: none; }
+#profileSection[hidden] { display: none; }
+#profileSection {
+    width: min(100%, 520px);
+    margin-top: 24px;
+}
+#profileSection input,
+#profileSection button { margin-bottom: var(--control-bottom-margin); }
 .build-indicator {
     position: fixed;
     right: var(--build-offset);
