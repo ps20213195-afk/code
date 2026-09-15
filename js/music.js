@@ -1,6 +1,8 @@
 const musicPlayBtn = document.getElementById('musicPlayBtn');
 const musicVolume = document.getElementById('musicVolume');
 const musicAudio = document.getElementById('musicAudio');
+const musicDescription = document.getElementById('musicDescription');
+const softlyTrackBtn = document.getElementById('softlyTrackBtn');
 const publishedMusic = document.getElementById('publishedMusic');
 const musicAdminForm = document.getElementById('musicAdminForm');
 const musicAdminStatus = document.getElementById('musicAdminStatus');
@@ -31,11 +33,16 @@ musicAudio.addEventListener('pause', () => {
   musicPlayBtn.setAttribute('aria-label', 'Play music');
 });
 
+softlyTrackBtn.addEventListener('click', () => {
+  setMusicTrack('Softly', './assets/music-softly.ogg');
+});
+
 function setMusicTrack(title, url) {
   musicAudio.pause();
   musicAudio.src = url;
   musicAudio.load();
   document.getElementById('musicStatus').textContent = title;
+  musicDescription.textContent = `Current song: ${title}`;
   musicPlayBtn.textContent = '▶';
   musicPlayBtn.title = 'Play music';
   musicPlayBtn.setAttribute('aria-label', 'Play music');

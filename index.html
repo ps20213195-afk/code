@@ -123,10 +123,11 @@
                     <span class="music-bar bar-four"></span>
                     <span class="music-bar bar-five"></span>
                 </div>
-                <p class="music-description">Softly by Loyalty Freak Music. CC0 audio, no attribution required.</p>
+                <p id="musicDescription" class="music-description">Current song: Softly</p>
                 <div id="publishedMusic" class="published-music" aria-live="polite"></div>
                 <div class="music-controls">
                     <audio id="musicAudio" src="./assets/music-softly.ogg" preload="metadata" loop></audio>
+                    <button type="button" id="softlyTrackBtn" class="music-track" title="Select Softly">Softly</button>
                     <button type="button" id="musicPlayBtn" class="icon-button" title="Play music" aria-label="Play music">▶</button>
                     <label for="musicVolume">Volume</label>
                     <input id="musicVolume" type="range" min="0" max="1" step="0.01" value="0.35" />
