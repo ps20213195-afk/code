@@ -415,7 +415,7 @@ html[data-theme="sunset"] {
     grid-column: 2;
     grid-row: 1;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: auto;
 }
 .page > .panel {
     width: 100%;
@@ -423,7 +423,7 @@ html[data-theme="sunset"] {
     background: var(--color-panel-surface);
     border: var(--panel-divider-width) solid var(--color-white);
     box-shadow: none;
-    overflow: hidden;
+    overflow: auto;
     box-sizing: border-box;
 }
 .page > .panel:first-child {
