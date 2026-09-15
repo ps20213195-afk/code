@@ -225,7 +225,7 @@ function updateAuthBadgesAndProviders(user) {
 document.getElementById('signUpBtn').addEventListener('click', async () => {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
-  const username = document.getElementById('username').value || 'Player_' + Math.floor(Math.random()*1000);
+  const username = document.getElementById('username').value || 'potato';
   const flair = document.getElementById('flair').value || 'Novice';
 
   if (!email || !password) {
