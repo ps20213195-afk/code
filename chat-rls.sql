@@ -1,17 +1,4 @@
 -- Run this in the Supabase SQL editor for the public.chat and profiles tables.
--- profiles.id must contain one non-null auth user UUID per profile.
--- Check first; this should return zero rows before adding the primary key.
-select id, count(*)
-from public.profiles
-group by id
-having id is null or count(*) > 1;
-
-alter table public.profiles
-	alter column id set not null;
-
-alter table public.profiles
-	add constraint profiles_pkey primary key (id);
-
 alter table public.profiles enable row level security;
 
 drop policy if exists "Users can update their own profile" on public.profiles;
@@ -41,3 +28,24 @@ to authenticated
 with check (uuid = auth.uid());
 
 grant select, insert on table public.chat to authenticated;
+
+create table if not exists public.music (
+	id uuid primary key default gen_random_uuid(),
+	title text not null,
+	url text not null,
+	created_by uuid not null references auth.users(id),
+	created_at timestamptz not null default now()
+);
+
+alter table public.music enable row level security;
+
+drop policy if exists "Authenticated users can read music" on public.music;
+create policy "Authenticated users can read music"
+on public.music for select to authenticated using (true);
+
+drop policy if exists "Admin can publish music" on public.music;
+create policy "Admin can publish music"
+on public.music for insert to authenticated
+with check (created_by = auth.uid() and auth.uid() = '13df2e26-2285-43de-855d-ba42c9c9ff8d'::uuid);
+
+grant select, insert on table public.music to authenticated;

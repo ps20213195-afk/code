@@ -10,25 +10,29 @@
 </head>
 <body>
     <nav id="viewTabs" class="view-tabs" aria-label="Main views">
-        <button type="button" class="view-tab is-active" data-view="achievements" aria-selected="true">
-            <span class="view-tab-icon icon-achievements" aria-hidden="true"></span>
-            <span>Achievements</span>
-        </button>
-        <button type="button" class="view-tab" data-view="chat" aria-selected="false">
+        <button type="button" class="view-tab is-active" data-view="chat" aria-selected="true">
             <span class="view-tab-icon icon-chat" aria-hidden="true"></span>
             <span>Chat</span>
-        </button>
-        <button type="button" class="view-tab" data-view="settings" aria-selected="false">
-            <span class="view-tab-icon icon-settings" aria-hidden="true"></span>
-            <span>Settings</span>
         </button>
         <button type="button" class="view-tab" data-view="games" aria-selected="false">
             <span class="view-tab-icon icon-games" aria-hidden="true"></span>
             <span>Games</span>
         </button>
+        <button type="button" class="view-tab" data-view="achievements" aria-selected="false">
+            <span class="view-tab-icon icon-achievements" aria-hidden="true"></span>
+            <span>Achievements</span>
+        </button>
+        <button type="button" class="view-tab" data-view="music" aria-selected="false">
+            <span class="view-tab-icon icon-music" aria-hidden="true"></span>
+            <span>Music</span>
+        </button>
+        <button type="button" class="view-tab" data-view="settings" aria-selected="false">
+            <span class="view-tab-icon icon-settings" aria-hidden="true"></span>
+            <span>Settings</span>
+        </button>
     </nav>
     <main class="page">
-        <div id="achievementsView" class="view-content is-visible">
+        <div id="achievementsView" class="view-content" hidden>
         <section class="panel" aria-labelledby="achievements-heading">
             <div class="panel-header">
                 <h1 id="achievements-heading">Achievements</h1>
@@ -47,7 +51,7 @@
             </div>
         </section>
         </div>
-        <section id="chatView" class="panel chat-panel" aria-labelledby="chat-heading" hidden>
+        <section id="chatView" class="panel chat-panel" aria-labelledby="chat-heading">
             <div class="panel-header">
                 <h1 id="chat-heading">Chat</h1>
                 <span id="chatStatus" class="chat-status">Loading...</span>
@@ -106,6 +110,36 @@
                 </div>
             </div>
         </section>
+        <section id="musicView" class="panel music-panel" aria-labelledby="music-heading" hidden>
+            <div class="panel-header">
+                <h1 id="music-heading">Music</h1>
+                <span id="musicStatus" class="chat-status">Softly | CC0</span>
+            </div>
+            <div class="panel-body music-body">
+                <div class="music-display" aria-hidden="true">
+                    <span class="music-bar bar-one"></span>
+                    <span class="music-bar bar-two"></span>
+                    <span class="music-bar bar-three"></span>
+                    <span class="music-bar bar-four"></span>
+                    <span class="music-bar bar-five"></span>
+                </div>
+                <p class="music-description">Softly by Loyalty Freak Music. CC0 audio, no attribution required.</p>
+                <div id="publishedMusic" class="published-music" aria-live="polite"></div>
+                <div class="music-controls">
+                    <audio id="musicAudio" src="./assets/music-softly.ogg" preload="metadata" loop></audio>
+                    <button type="button" id="musicPlayBtn" class="icon-button" title="Play music" aria-label="Play music">▶</button>
+                    <label for="musicVolume">Volume</label>
+                    <input id="musicVolume" type="range" min="0" max="1" step="0.01" value="0.35" />
+                </div>
+                <form id="musicAdminForm" class="music-admin" hidden>
+                    <h2>Publish music</h2>
+                    <input id="musicTitleInput" type="text" maxlength="100" placeholder="Track title" required />
+                    <input id="musicUrlInput" type="url" placeholder="Direct audio URL (.mp3, .ogg, .wav)" required />
+                    <button type="submit"><span class="btn-icon icon-save"></span>Publish Track</button>
+                    <p id="musicAdminStatus" class="music-admin-status" aria-live="polite"></p>
+                </form>
+            </div>
+        </section>
     </main> 
     <aside id="accountManagement" aria-label="Account Management">
         <div id="authSection" class="box">
@@ -158,5 +192,6 @@
     <script src="./js/chat.js"></script>
     <script src="./js/settings.js"></script>
     <script src="./js/games.js"></script>
+    <script src="./js/music.js"></script>
 </body>
 </html>

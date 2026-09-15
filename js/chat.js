@@ -10,6 +10,7 @@ const chatElements = {
   chatView: document.getElementById('chatView'),
   settingsView: document.getElementById('settingsView'),
   gamesView: document.getElementById('gamesView'),
+  musicView: document.getElementById('musicView'),
   messages: document.getElementById('chatMessages'),
   form: document.getElementById('chatForm'),
   input: document.getElementById('chatInput'),
@@ -95,16 +96,18 @@ chatElements.tabs.forEach((tab) => {
     const isChat = tab.dataset.view === 'chat';
     const isSettings = tab.dataset.view === 'settings';
     const isGames = tab.dataset.view === 'games';
+    const isMusic = tab.dataset.view === 'music';
     const selectedView = isChat ? chatElements.chatView
       : isSettings ? chatElements.settingsView
         : isGames ? chatElements.gamesView
+        : isMusic ? chatElements.musicView
         : chatElements.achievementsView;
     chatElements.tabs.forEach((item) => {
       const active = item === tab;
       item.classList.toggle('is-active', active);
       item.setAttribute('aria-selected', String(active));
     });
-    [chatElements.achievementsView, chatElements.chatView, chatElements.settingsView, chatElements.gamesView]
+    [chatElements.achievementsView, chatElements.chatView, chatElements.settingsView, chatElements.gamesView, chatElements.musicView]
       .forEach((view) => {
         view.hidden = view !== selectedView;
       });

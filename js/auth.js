@@ -275,7 +275,7 @@ document.getElementById('googleSignInBtn').addEventListener('click', async () =>
   const { error } = await _supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin + window.location.pathname
+      redirectTo: 'https://skybase-cookie.duckdns.org/'
     }
   });
 
