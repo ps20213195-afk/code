@@ -76,8 +76,12 @@ async function loadPublishedMusic() {
 
 async function setupMusicAdmin() {
   const { data: { user } } = await _supabase.auth.getUser();
-  if (user?.id === ADMIN_UUID) musicAdminForm.hidden = false;
+  musicAdminForm.hidden = user?.id !== ADMIN_UUID;
 }
+
+_supabase.auth.onAuthStateChange((event, session) => {
+  musicAdminForm.hidden = session?.user?.id !== ADMIN_UUID;
+});
 
 musicAdminForm.addEventListener('submit', async (event) => {
   event.preventDefault();
