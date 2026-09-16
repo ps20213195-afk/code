@@ -225,13 +225,17 @@ function updateAuthBadgesAndProviders(user) {
 
 // 3. SIGN UP FUNCTION
 document.getElementById('signUpBtn').addEventListener('click', async () => {
-  const email = document.getElementById('email').value;
+  const email = document.getElementById('email').value.trim().toLowerCase();
   const password = document.getElementById('password').value;
   const username = document.getElementById('username').value || 'potato';
   const flair = document.getElementById('flair').value || 'Novice';
 
   if (!email || !password) {
     showPopup("Please enter an email and password!", 'error');
+    return;
+  }
+  if (password.length < 6) {
+    showPopup("Password must be at least 6 characters!", 'error');
     return;
   }
 
@@ -246,7 +250,7 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
 
   if (error) {
     printLog("❌ Signup Error: " + error.message);
-    showPopup("Signup failed ", 'error');
+    showPopup(`Signup failed: ${error.message}`, 'error');
   } else {
     printLog("✅ Signup successful!");
     showPopup("Created new account!", 'success');
