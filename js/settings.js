@@ -12,6 +12,8 @@ const settingsControls = {
   motion: document.getElementById('motionSetting'),
   reset: document.getElementById('resetSettingsBtn')
 };
+const checkCommitBtn = document.getElementById('checkCommitBtn');
+const currentCommitStatus = document.getElementById('currentCommitStatus');
 
 function readSettings() {
   try {
@@ -49,6 +51,24 @@ function saveSettings() {
 settingsControls.reset.addEventListener('click', () => {
   localStorage.removeItem('skybase-settings');
   applySettings(settingsDefaults);
+});
+
+checkCommitBtn.addEventListener('click', async () => {
+  checkCommitBtn.disabled = true;
+  currentCommitStatus.textContent = 'Checking...';
+  try {
+    const response = await fetch('https://api.github.com/repos/ps20213195-afk/code/commits/main', {
+      headers: { Accept: 'application/vnd.github+json' }
+    });
+    if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
+    const commit = await response.json();
+    const shortSha = commit.sha.slice(0, 7);
+    currentCommitStatus.textContent = `${shortSha} - ${commit.commit.message.split('\n')[0]}`;
+  } catch (error) {
+    currentCommitStatus.textContent = 'Could not check the current commit.';
+  } finally {
+    checkCommitBtn.disabled = false;
+  }
 });
 
 applySettings(readSettings());
