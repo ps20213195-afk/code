@@ -259,15 +259,24 @@ document.getElementById('signUpBtn').addEventListener('click', async () => {
 
 // 4. SIGN IN FUNCTION
 document.getElementById('signInBtn').addEventListener('click', async () => {
-  const email = document.getElementById('email').value;
+  const email = document.getElementById('email').value.trim().toLowerCase();
   const password = document.getElementById('password').value;
+
+  if (!email || !password) {
+    showPopup('Enter your email and password.', 'error');
+    return;
+  }
+  if (password.length < 6) {
+    showPopup('Password must be at least 6 characters!', 'error');
+    return;
+  }
 
   printLog("Logging in...");
   showPopup("Logging in...", 'info');
   const { error } = await _supabase.auth.signInWithPassword({ email, password });
   if (error) {
     printLog("❌ Login Error: " + error.message);
-    showPopup("Login failed ",  'error');
+    showPopup(`Login failed: ${error.message}`, 'error');
   } else {
     showPopup("Logged in successfully!", 'success');
   }
