@@ -7,7 +7,7 @@ const publishedMusic = document.getElementById('publishedMusic');
 const musicAdminForm = document.getElementById('musicAdminForm');
 const musicAdminStatus = document.getElementById('musicAdminStatus');
 const musicFileInput = document.getElementById('musicFileInput');
-const ADMIN_UUID = '13df2e26-2285-43de-855d-ba42c9c9ff8d';
+const MUSIC_ADMIN_UUID = '13df2e26-2285-43de-855d-ba42c9c9ff8d';
 const MUSIC_BUCKET = 'music';
 const MAX_MUSIC_FILE_SIZE = 50 * 1024 * 1024;
 
@@ -79,7 +79,7 @@ async function loadPublishedMusic() {
 
 async function setupMusicAdmin() {
   const { data: { user } } = await _supabase.auth.getUser();
-  musicAdminForm.hidden = user?.id !== ADMIN_UUID;
+  musicAdminForm.hidden = user?.id !== MUSIC_ADMIN_UUID;
 }
 
 const musicAdminCheck = setInterval(async () => {
@@ -88,7 +88,7 @@ const musicAdminCheck = setInterval(async () => {
 }, 1000);
 
 _supabase.auth.onAuthStateChange((event, session) => {
-  musicAdminForm.hidden = session?.user?.id !== ADMIN_UUID;
+  musicAdminForm.hidden = session?.user?.id !== MUSIC_ADMIN_UUID;
 });
 
 musicAdminForm.addEventListener('submit', async (event) => {
@@ -110,7 +110,7 @@ musicAdminForm.addEventListener('submit', async (event) => {
   }
   musicAdminStatus.textContent = 'Publishing...';
   const { data: { user } } = await _supabase.auth.getUser();
-  if (user?.id !== ADMIN_UUID) {
+  if (user?.id !== MUSIC_ADMIN_UUID) {
     musicAdminStatus.textContent = 'Admin access required.';
     return;
   }
