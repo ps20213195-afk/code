@@ -50,6 +50,25 @@ with check (created_by = auth.uid() and auth.uid() = '13df2e26-2285-43de-855d-ba
 
 grant select, insert on table public.music to authenticated;
 
+insert into storage.buckets (id, name, public)
+values ('music', 'music', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists "Admin can upload music files" on storage.objects;
+create policy "Admin can upload music files"
+on storage.objects for insert to authenticated
+with check (
+
+	bucket_id = 'music'
+	and owner_id = auth.uid()::text
+	and auth.uid() = '13df2e26-2285-43de-855d-ba42c9c9ff8d'::uuid
+);
+
+drop policy if exists "Authenticated users can read music files" on storage.objects;
+create policy "Authenticated users can read music files"
+on storage.objects for select to authenticated
+using (bucket_id = 'music');
+
 create table if not exists public.games (
 	id uuid primary key default gen_random_uuid(),
 	name text not null,

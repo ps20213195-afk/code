@@ -179,7 +179,10 @@
                 <form id="musicAdminForm" class="music-admin" hidden>
                     <h2>Publish music</h2>
                     <input id="musicTitleInput" type="text" maxlength="100" placeholder="Track title" required />
-                    <input id="musicUrlInput" type="url" placeholder="Direct audio URL (.mp3, .ogg, .wav)" required />
+                    <label for="musicFileInput">Audio file</label>
+                    <input id="musicFileInput" type="file" accept="audio/*,.mp3,.ogg,.wav" />
+                    <span class="music-admin-or">or</span>
+                    <input id="musicUrlInput" type="url" placeholder="Direct audio URL (.mp3, .ogg, .wav)" />
                     <button type="submit"><span class="btn-icon icon-save"></span>Publish Track</button>
                     <p id="musicAdminStatus" class="music-admin-status" aria-live="polite"></p>
                 </form>

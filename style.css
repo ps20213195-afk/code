@@ -365,6 +365,8 @@ body {
 .music-admin[hidden] { display: none !important; }
 .music-admin h2 { margin: 0; color: var(--color-heading); font-family: 'lowbig'; font-size: 20px; }
 .music-admin input { margin: 0; }
+.music-admin label { margin: 0; font-family: 'lowsmall'; font-size: 14px; text-align: left; }
+.music-admin-or { font-family: 'lowsmall'; font-size: 13px; color: var(--color-heading); }
 .music-admin button { width: auto; margin: 0; }
 .music-admin-status { min-height: 18px; margin: 0; font-family: 'lowsmall'; font-size: 14px; }
 .music-controls audio { display: none; }

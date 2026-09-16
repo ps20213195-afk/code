@@ -6,7 +6,10 @@ const softlyTrackBtn = document.getElementById('softlyTrackBtn');
 const publishedMusic = document.getElementById('publishedMusic');
 const musicAdminForm = document.getElementById('musicAdminForm');
 const musicAdminStatus = document.getElementById('musicAdminStatus');
+const musicFileInput = document.getElementById('musicFileInput');
 const ADMIN_UUID = '13df2e26-2285-43de-855d-ba42c9c9ff8d';
+const MUSIC_BUCKET = 'music';
+const MAX_MUSIC_FILE_SIZE = 50 * 1024 * 1024;
 
 async function toggleMusic() {
   if (musicAudio.paused) {
@@ -92,8 +95,17 @@ musicAdminForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const title = document.getElementById('musicTitleInput').value.trim();
   const url = document.getElementById('musicUrlInput').value.trim();
-  if (!/^https?:\/\//i.test(url)) {
-    musicAdminStatus.textContent = 'Use a valid http or https audio URL.';
+  const file = musicFileInput.files[0];
+  if (!file && !/^https?:\/\//i.test(url)) {
+    musicAdminStatus.textContent = 'Choose an audio file or enter a valid http or https URL.';
+    return;
+  }
+  if (file && file.size > MAX_MUSIC_FILE_SIZE) {
+    musicAdminStatus.textContent = 'Audio files must be 50 MB or smaller.';
+    return;
+  }
+  if (file && file.type && !file.type.startsWith('audio/')) {
+    musicAdminStatus.textContent = 'Choose a supported audio file.';
     return;
   }
   musicAdminStatus.textContent = 'Publishing...';
@@ -102,7 +114,23 @@ musicAdminForm.addEventListener('submit', async (event) => {
     musicAdminStatus.textContent = 'Admin access required.';
     return;
   }
-  const { error } = await _supabase.from('music').insert({ title, url, created_by: user.id });
+  let publishedUrl = url;
+  if (file) {
+    const safeFileName = file.name.replace(/[^a-z0-9._-]/gi, '-');
+    const filePath = `${user.id}/${crypto.randomUUID()}-${safeFileName}`;
+    const { error: uploadError } = await _supabase.storage.from(MUSIC_BUCKET).upload(filePath, file, {
+      cacheControl: '3600',
+      contentType: file.type || 'audio/mpeg',
+      upsert: false
+    });
+    if (uploadError) {
+      musicAdminStatus.textContent = `Could not upload: ${uploadError.message}`;
+      return;
+    }
+    const { data: publicUrlData } = _supabase.storage.from(MUSIC_BUCKET).getPublicUrl(filePath);
+    publishedUrl = publicUrlData.publicUrl;
+  }
+  const { error } = await _supabase.from('music').insert({ title, url: publishedUrl, created_by: user.id });
   if (error) {
     musicAdminStatus.textContent = `Could not publish: ${error.message}`;
     return;
