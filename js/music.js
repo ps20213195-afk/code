@@ -79,6 +79,11 @@ async function setupMusicAdmin() {
   musicAdminForm.hidden = user?.id !== ADMIN_UUID;
 }
 
+const musicAdminCheck = setInterval(async () => {
+  await setupMusicAdmin();
+  if (!musicAdminForm.hidden) clearInterval(musicAdminCheck);
+}, 1000);
+
 _supabase.auth.onAuthStateChange((event, session) => {
   musicAdminForm.hidden = session?.user?.id !== ADMIN_UUID;
 });
