@@ -22,7 +22,11 @@
         </div>
     </section>
     <nav id="viewTabs" class="view-tabs" aria-label="Main views">
-        <button type="button" class="view-tab is-active" data-view="chat" aria-selected="true">
+        <button type="button" class="view-tab is-active" data-view="home" aria-selected="true">
+            <span class="view-tab-icon icon-home" aria-hidden="true"></span>
+            <span>Home</span>
+        </button>
+        <button type="button" class="view-tab" data-view="chat" aria-selected="false">
             <span class="view-tab-icon icon-chat" aria-hidden="true"></span>
             <span>Chat</span>
         </button>
@@ -44,6 +48,14 @@
         </button>
     </nav>
     <main class="page">
+        <section id="homeView" class="panel home-panel" aria-labelledby="home-heading">
+            <div class="panel-header">
+                <h1 id="home-heading">Home</h1>
+            </div>
+            <div class="panel-body">
+                <p id="desc">Welcome to Skybase. Choose a tab to explore the site.</p>
+            </div>
+        </section>
         <div id="achievementsView" class="view-content" hidden>
         <section class="panel" aria-labelledby="achievements-heading">
             <div class="panel-header">
@@ -63,7 +75,7 @@
             </div>
         </section>
         </div>
-        <section id="chatView" class="panel chat-panel" aria-labelledby="chat-heading">
+        <section id="chatView" class="panel chat-panel" aria-labelledby="chat-heading" hidden>
             <div class="panel-header">
                 <h1 id="chat-heading">Chat</h1>
                 <span id="chatStatus" class="chat-status">Loading...</span>

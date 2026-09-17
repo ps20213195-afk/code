@@ -308,6 +308,7 @@ body {
     filter: grayscale(1) contrast(1.2);
 }
 .icon-achievements { background-image: url('https://cdn.jsdelivr.net/npm/pixelarticons@1.8.1/svg/trophy.svg'); }
+.icon-home { background-image: url('https://cdn.jsdelivr.net/npm/pixelarticons@1.8.1/svg/home.svg'); }
 .icon-chat { background-image: url('https://cdn.jsdelivr.net/npm/pixelarticons@1.8.1/svg/message.svg'); }
 .icon-settings { background-image: url('https://cdn.jsdelivr.net/npm/pixelarticons@1.8.1/svg/sliders.svg'); }
 .icon-games { background-image: url('https://cdn.jsdelivr.net/npm/pixelarticons@1.8.1/svg/gamepad.svg'); }

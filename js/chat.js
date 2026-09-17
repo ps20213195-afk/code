@@ -6,6 +6,7 @@ const chatState = {
 
 const chatElements = {
   tabs: [...document.querySelectorAll('.view-tab')],
+  homeView: document.getElementById('homeView'),
   achievementsView: document.getElementById('achievementsView'),
   chatView: document.getElementById('chatView'),
   settingsView: document.getElementById('settingsView'),
@@ -93,11 +94,13 @@ function connectChatRealtime() {
 
 chatElements.tabs.forEach((tab) => {
   tab.addEventListener('click', () => {
+    const isHome = tab.dataset.view === 'home';
     const isChat = tab.dataset.view === 'chat';
     const isSettings = tab.dataset.view === 'settings';
     const isGames = tab.dataset.view === 'games';
     const isMusic = tab.dataset.view === 'music';
-    const selectedView = isChat ? chatElements.chatView
+    const selectedView = isHome ? chatElements.homeView
+      : isChat ? chatElements.chatView
       : isSettings ? chatElements.settingsView
         : isGames ? chatElements.gamesView
         : isMusic ? chatElements.musicView
@@ -107,7 +110,7 @@ chatElements.tabs.forEach((tab) => {
       item.classList.toggle('is-active', active);
       item.setAttribute('aria-selected', String(active));
     });
-    [chatElements.achievementsView, chatElements.chatView, chatElements.settingsView, chatElements.gamesView, chatElements.musicView]
+    [chatElements.homeView, chatElements.achievementsView, chatElements.chatView, chatElements.settingsView, chatElements.gamesView, chatElements.musicView]
       .forEach((view) => {
         view.hidden = view !== selectedView;
       });
