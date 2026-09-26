@@ -1,7 +1,10 @@
 const chatState = {
   channel: null,
   rows: [],
-  profiles: new Map()
+  profiles: new Map(),
+  knownMessageKeys: new Set(),
+  currentUserId: null,
+  isLoading: false
 };
 
 const chatElements = {
@@ -20,6 +23,24 @@ const chatElements = {
 
 function getChatText(row) {
   return row.msg || '';
+}
+
+function getMessageKey(row) {
+  return row.id || `${row.uuid || 'anonymous'}:${row.created_at || ''}:${getChatText(row)}`;
+}
+
+function notifyNewMessages(rows) {
+  rows
+    .filter((row) => row.uuid !== chatState.currentUserId)
+    .forEach((row) => {
+      const profile = chatState.profiles.get(row.uuid);
+      const username = profile?.username || row.uuid || 'Somebody';
+      if (chatElements.chatView.hidden) {
+        showPopup(`${username} sent a new message`, 'info');
+      } else {
+        playNotificationSound('info');
+      }
+    });
 }
 
 function renderChat() {
@@ -60,29 +81,45 @@ function renderChat() {
 }
 
 async function loadChat() {
+  if (chatState.isLoading) return;
+  chatState.isLoading = true;
   chatElements.status.textContent = 'Loading...';
-  const { data, error } = await _supabase.from('chat').select('*');
-  if (error) {
-    chatElements.status.textContent = 'Unavailable';
-    chatElements.messages.replaceChildren();
-    const errorMessage = document.createElement('p');
-    errorMessage.className = 'chat-empty';
-    errorMessage.textContent = `Could not load chat: ${error.message}`;
-    chatElements.messages.append(errorMessage);
-    return;
+  try {
+    const [{ data, error }, { data: { user } }] = await Promise.all([
+      _supabase.from('chat').select('*'),
+      _supabase.auth.getUser()
+    ]);
+    if (error) {
+      chatElements.status.textContent = 'Unavailable';
+      chatElements.messages.replaceChildren();
+      const errorMessage = document.createElement('p');
+      errorMessage.className = 'chat-empty';
+      errorMessage.textContent = `Could not load chat: ${error.message}`;
+      chatElements.messages.append(errorMessage);
+      return;
+    }
+    chatState.currentUserId = user?.id || null;
+    const rows = data || [];
+    const newRows = chatState.knownMessageKeys.size === 0
+      ? []
+      : rows.filter((row) => !chatState.knownMessageKeys.has(getMessageKey(row)));
+    chatState.knownMessageKeys = new Set(rows.map(getMessageKey));
+    chatState.rows = rows;
+    chatState.profiles = new Map();
+    const uuids = [...new Set(chatState.rows.map((row) => row.uuid).filter(Boolean))];
+    if (uuids.length) {
+      const { data: profiles } = await _supabase
+        .from('profiles')
+        .select('id, username, flair, flair_color')
+        .in('id', uuids);
+      (profiles || []).forEach((profile) => chatState.profiles.set(profile.id, profile));
+    }
+    notifyNewMessages(newRows);
+    chatElements.status.textContent = 'Connected';
+    renderChat();
+  } finally {
+    chatState.isLoading = false;
   }
-  chatState.rows = data || [];
-  chatState.profiles = new Map();
-  const uuids = [...new Set(chatState.rows.map((row) => row.uuid).filter(Boolean))];
-  if (uuids.length) {
-    const { data: profiles } = await _supabase
-      .from('profiles')
-      .select('id, username, flair, flair_color')
-      .in('id', uuids);
-    (profiles || []).forEach((profile) => chatState.profiles.set(profile.id, profile));
-  }
-  chatElements.status.textContent = 'Connected';
-  renderChat();
 }
 
 function connectChatRealtime() {
@@ -148,4 +185,5 @@ chatElements.form.addEventListener('submit', async (event) => {
 });
 
 loadChat();
+setInterval(loadChat, 2000);
 connectChatRealtime();
