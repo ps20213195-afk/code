@@ -95,7 +95,10 @@
             <div class="panel-header">
                 <h1 id="chat-heading">Chat</h1>
                 <div class="chat-header-status">
-                    <span id="chatOnlineCount" class="chat-status" aria-live="polite">0 online</span>
+                    <div id="chatOnlineBar" class="chat-online-bar" aria-live="polite">
+                        <span id="chatOnlineCount" class="chat-status">0 online</span>
+                        <div id="chatOnlineUsers" class="chat-online-users"></div>
+                    </div>
                     <span id="chatStatus" class="chat-status">Loading...</span>
                 </div>
             </div>

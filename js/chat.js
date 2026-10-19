@@ -8,7 +8,8 @@ const chatState = {
   knownMessageKeys: new Set(),
   currentUserId: null,
   currentRoomId: null,
-  isLoading: false
+  isLoading: false,
+  reloadRequested: false
 };
 
 const chatElements = {
@@ -32,8 +33,11 @@ const chatElements = {
   inviteCode: document.getElementById('chatInviteCode'),
   makeInviteButton: document.getElementById('makeChatInviteBtn'),
   copyInviteButton: document.getElementById('copyChatInviteBtn'),
-  onlineCount: document.getElementById('chatOnlineCount')
+  onlineCount: document.getElementById('chatOnlineCount'),
+  onlineUsers: document.getElementById('chatOnlineUsers')
 };
+
+const onlineProfileCache = new Map();
 
 const CENSORED_WORDS = ['asshole', 'bastard', 'bitch', 'crap', 'damn', 'fuck', 'shit'];
 
@@ -48,7 +52,7 @@ function getChatText(row) {
 }
 
 function getMessageKey(row) {
-  return row.id || `${row.uuid || 'anonymous'}:${row.created_at || ''}:${getChatText(row)}`;
+  return row.id || row.chat_row_id || `${row.uuid || 'anonymous'}:${row.created_at || ''}:${getChatText(row)}`;
 }
 
 function notifyNewMessages(rows) {
@@ -145,14 +149,39 @@ async function loadRooms() {
   return Boolean(chatState.currentRoomId);
 }
 
-function updateOnlineCount() {
-  if (!chatElements.onlineCount) return;
+async function updateOnlineCount() {
+  if (!chatElements.onlineCount || !chatElements.onlineUsers) return;
   const presence = chatState.presenceChannel?.presenceState() || {};
-  const uniqueUsers = new Set();
+  const onlineUsers = new Map();
   Object.values(presence).flat().forEach((entry) => {
-    if (entry.user_id) uniqueUsers.add(entry.user_id);
+    if (entry.user_id) onlineUsers.set(entry.user_id, entry.username || '');
   });
-  chatElements.onlineCount.textContent = `${uniqueUsers.size} online`;
+
+  const missingProfiles = [...onlineUsers.keys()].filter((userId) => !onlineProfileCache.has(userId));
+  if (missingProfiles.length) {
+    try {
+      const { data } = await _supabase
+        .from('profiles')
+        .select('id, username')
+        .in('id', missingProfiles);
+      (data || []).forEach((profile) => onlineProfileCache.set(profile.id, profile.username));
+    } catch (error) {
+      console.warn('Could not load names for online chat members.', error);
+    }
+    missingProfiles.forEach((userId) => {
+      if (!onlineProfileCache.has(userId)) onlineProfileCache.set(userId, '');
+    });
+  }
+
+  chatElements.onlineCount.textContent = `${onlineUsers.size} online`;
+  chatElements.onlineUsers.replaceChildren();
+  onlineUsers.forEach((presenceName, userId) => {
+    const chip = document.createElement('span');
+    chip.className = 'chat-online-user';
+    chip.title = userId;
+    chip.textContent = presenceName || onlineProfileCache.get(userId) || `User ${userId.slice(0, 6)}`;
+    chatElements.onlineUsers.append(chip);
+  });
 }
 
 async function connectRoomPresence(roomId, userId) {
@@ -168,6 +197,7 @@ async function connectRoomPresence(roomId, userId) {
   }
   if (!roomId || !userId) {
     chatElements.onlineCount.textContent = 'Sign in to see online users';
+    chatElements.onlineUsers.replaceChildren();
     return;
   }
 
@@ -181,14 +211,23 @@ async function connectRoomPresence(roomId, userId) {
     .on('presence', { event: 'leave' }, updateOnlineCount)
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        await chatState.presenceChannel.track({ user_id: userId, online_at: new Date().toISOString() });
+        const profileName = document.getElementById('displayUsername')?.textContent;
+        const username = profileName && profileName !== 'Loading...' ? profileName : '';
+        await chatState.presenceChannel.track({
+          user_id: userId,
+          username,
+          online_at: new Date().toISOString()
+        });
         updateOnlineCount();
       }
     });
 }
 
 async function loadChat() {
-  if (chatState.isLoading) return;
+  if (chatState.isLoading) {
+    chatState.reloadRequested = true;
+    return;
+  }
   chatState.isLoading = true;
   try {
     const roomsAvailable = await loadRooms();
@@ -231,6 +270,10 @@ async function loadChat() {
     console.error('Could not refresh chat:', error);
   } finally {
     chatState.isLoading = false;
+    if (chatState.reloadRequested) {
+      chatState.reloadRequested = false;
+      void loadChat();
+    }
   }
 }
 
@@ -309,8 +352,16 @@ chatElements.roomForm.addEventListener('submit', async (event) => {
 
 chatElements.joinForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const code = chatElements.inviteInput.value.trim().toLowerCase();
+  const code = chatElements.inviteInput.value
+    .trim()
+    .toLowerCase()
+    .replace(/[–—−]/g, '-')
+    .replace(/\s+/g, '');
   if (!code) return;
+  if (!/^[a-z]+-[a-z]+-\d{9}$/.test(code)) {
+    showPopup('Sharing codes should look like funny-apple-123456789', 'warning');
+    return;
+  }
   const { data: { user } } = await _supabase.auth.getUser();
   if (!user) {
     showPopup('Sign in before joining a private chat', 'warning');
@@ -319,13 +370,30 @@ chatElements.joinForm.addEventListener('submit', async (event) => {
 
   const { data: roomId, error } = await _supabase.rpc('join_chat_with_code', { p_code: code });
   if (error) {
-    showPopup(`Could not join private chat: ${error.message}`, 'error');
+    const hint = /Could not find the function|schema cache/i.test(error.message || '')
+      ? 'Run the latest chat-rls.sql in Supabase, then retry the code.'
+      : error.message;
+    showPopup(`Could not join private chat: ${hint}`, 'error');
+    return;
+  }
+  const joinedRoomId = typeof roomId === 'string'
+    ? roomId
+    : Array.isArray(roomId)
+      ? roomId[0]?.join_chat_with_code || roomId[0]?.room_id
+      : roomId?.join_chat_with_code || roomId?.room_id || roomId?.id;
+  if (!joinedRoomId) {
+    showPopup('The join request succeeded but returned no room. Apply the latest chat-rls.sql and try a fresh code.', 'error');
     return;
   }
   chatElements.inviteInput.value = '';
   chatElements.inviteShare.hidden = true;
-  chatState.currentRoomId = roomId;
+  chatState.currentRoomId = joinedRoomId;
   chatState.knownMessageKeys.clear();
+  const selectedOptionExists = [...chatElements.roomSelect.options].some((option) => option.value === joinedRoomId);
+  if (!selectedOptionExists) {
+    const selectedRoom = chatState.rooms.find((room) => room.id === joinedRoomId);
+    if (selectedRoom) renderRooms();
+  }
   await loadChat();
   showPopup('Joined the private chat. That sharing code can no longer be used.', 'success');
 });

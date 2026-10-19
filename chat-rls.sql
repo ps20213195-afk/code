@@ -238,7 +238,36 @@ with check (
 	and public.is_chat_room_member(room_id)
 );
 
+drop policy if exists "Users can delete their own chat messages" on public.chat;
+create policy "Users can delete their own chat messages"
+on public.chat
+for delete
+to authenticated
+using (uuid = auth.uid() and public.is_chat_room_member(room_id));
+
 grant select, insert on table public.chat to authenticated;
+grant delete on table public.chat to authenticated;
+
+-- Supabase Table Editor needs a primary key to target individual chat rows.
+do $$
+begin
+	if not exists (
+		select 1
+		from pg_constraint
+		where conrelid = 'public.chat'::regclass
+			and contype = 'p'
+	) then
+		alter table public.chat
+			add column if not exists chat_row_id uuid default gen_random_uuid();
+		update public.chat
+		set chat_row_id = gen_random_uuid()
+		where chat_row_id is null;
+		alter table public.chat alter column chat_row_id set default gen_random_uuid();
+		alter table public.chat alter column chat_row_id set not null;
+		alter table public.chat add constraint chat_pkey primary key (chat_row_id);
+	end if;
+end;
+$$;
 
 create table if not exists public.music (
 	id uuid primary key default gen_random_uuid(),
@@ -300,3 +329,5 @@ on public.games for insert to authenticated
 with check (created_by = auth.uid() and auth.uid() = '13df2e26-2285-43de-855d-ba42c9c9ff8d'::uuid);
 
 grant select, insert on table public.games to authenticated;
+
+notify pgrst, 'reload schema';
