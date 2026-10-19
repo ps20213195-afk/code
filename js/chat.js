@@ -30,6 +30,7 @@ const chatElements = {
   inviteInput: document.getElementById('chatInviteInput'),
   inviteShare: document.getElementById('chatInviteShare'),
   inviteCode: document.getElementById('chatInviteCode'),
+  makeInviteButton: document.getElementById('makeChatInviteBtn'),
   copyInviteButton: document.getElementById('copyChatInviteBtn'),
   onlineCount: document.getElementById('chatOnlineCount')
 };
@@ -335,6 +336,28 @@ chatElements.copyInviteButton.addEventListener('click', async () => {
     showPopup('One-time sharing code copied', 'success');
   } catch {
     showPopup('Copy was blocked by the browser. Select the code and copy it manually.', 'warning');
+  }
+});
+
+chatElements.makeInviteButton.addEventListener('click', async () => {
+  if (!chatState.currentRoomId) {
+    showPopup('Create or select a private chat first', 'warning');
+    return;
+  }
+  chatElements.makeInviteButton.disabled = true;
+  try {
+    const { data, error } = await _supabase.rpc('create_chat_invite', {
+      p_room_id: chatState.currentRoomId
+    });
+    if (error) {
+      showPopup(`Could not make a sharing code: ${error.message}`, 'error');
+      return;
+    }
+    chatElements.inviteCode.textContent = data;
+    chatElements.inviteShare.hidden = false;
+    showPopup('New one-time sharing code created', 'success');
+  } finally {
+    chatElements.makeInviteButton.disabled = false;
   }
 });
 

@@ -153,12 +153,52 @@ begin
 end;
 $$;
 
+create or replace function public.create_chat_invite(p_room_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+	v_user_id uuid := auth.uid();
+	v_code text;
+	v_first_words text[] := array['funny', 'happy', 'bright', 'cosmic', 'gentle', 'sleepy', 'tiny', 'golden', 'swift', 'fuzzy'];
+	v_second_words text[] := array['apple', 'comet', 'otter', 'waffle', 'panda', 'planet', 'muffin', 'turtle', 'cookie', 'kiwi'];
+begin
+	if v_user_id is null then
+		raise exception 'Sign in to create a sharing code';
+	end if;
+	if not exists (
+		select 1 from public.chat_room_members
+		where room_id = p_room_id and user_id = v_user_id
+	) then
+		raise exception 'You are not a member of this private chat';
+	end if;
+
+	loop
+		v_code := v_first_words[1 + floor(random() * array_length(v_first_words, 1))::int]
+			|| '-' || v_second_words[1 + floor(random() * array_length(v_second_words, 1))::int]
+			|| '-' || lpad(floor(random() * 1000000000)::bigint::text, 9, '0');
+		begin
+			insert into public.chat_invites (code, room_id, created_by)
+			values (v_code, p_room_id, v_user_id);
+			return v_code;
+		exception when unique_violation then
+			-- Retry if the randomly generated code already exists.
+			null;
+		end;
+	end loop;
+end;
+$$;
+
 revoke all on function public.is_chat_room_member(uuid) from public;
 revoke all on function public.create_private_chat(text) from public;
 revoke all on function public.join_chat_with_code(text) from public;
+revoke all on function public.create_chat_invite(uuid) from public;
 grant execute on function public.is_chat_room_member(uuid) to authenticated;
 grant execute on function public.create_private_chat(text) to authenticated;
 grant execute on function public.join_chat_with_code(text) to authenticated;
+grant execute on function public.create_chat_invite(uuid) to authenticated;
 
 alter table public.chat_rooms enable row level security;
 alter table public.chat_room_members enable row level security;

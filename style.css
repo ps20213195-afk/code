@@ -388,6 +388,8 @@ body {
 .chat-room-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .chat-room-form input { min-width: 0; margin: 0; }
 .chat-room-form button { width: auto; margin: 0; }
+.chat-invite-panel { display: grid; align-content: start; gap: 6px; }
+.chat-invite-panel > button { width: auto; margin: 0; }
 .chat-invite-share { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; padding: 6px 8px; border: 2px solid var(--color-white); background: var(--color-card-surface); font-family: 'lowsmall'; font-size: 13px; }
 .chat-invite-share[hidden] { display: none; }
 .chat-invite-share > span { grid-column: 1 / -1; color: var(--color-heading); }

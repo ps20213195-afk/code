@@ -113,10 +113,13 @@
                         <input id="chatInviteInput" type="text" maxlength="64" placeholder="funny-apple-123456789" autocomplete="off" required />
                         <button type="submit">Join privately</button>
                     </form>
-                    <div id="chatInviteShare" class="chat-invite-share" hidden>
-                        <span>One-time invite code</span>
-                        <output id="chatInviteCode"></output>
-                        <button id="copyChatInviteBtn" type="button" class="btn-secondary">Copy</button>
+                    <div class="chat-invite-panel">
+                        <button id="makeChatInviteBtn" type="button">Make another code</button>
+                        <div id="chatInviteShare" class="chat-invite-share" hidden>
+                            <span>One-time invite code</span>
+                            <output id="chatInviteCode"></output>
+                            <button id="copyChatInviteBtn" type="button" class="btn-secondary">Copy</button>
+                        </div>
                     </div>
                 </div>
                 <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
