@@ -108,6 +108,16 @@
                         <input id="chatRoomInput" type="text" maxlength="40" placeholder="Create a chat..." autocomplete="off" required />
                         <button type="submit">Create</button>
                     </form>
+                    <form id="chatJoinForm" class="chat-room-form">
+                        <label class="sr-only" for="chatInviteInput">One-time sharing code</label>
+                        <input id="chatInviteInput" type="text" maxlength="64" placeholder="funny-apple-123456789" autocomplete="off" required />
+                        <button type="submit">Join privately</button>
+                    </form>
+                    <div id="chatInviteShare" class="chat-invite-share" hidden>
+                        <span>One-time invite code</span>
+                        <output id="chatInviteCode"></output>
+                        <button id="copyChatInviteBtn" type="button" class="btn-secondary">Copy</button>
+                    </div>
                 </div>
                 <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
                 <form id="chatForm" class="chat-form">
@@ -122,29 +132,33 @@
                 <h1 id="settings-heading">Settings</h1>
             </div>
             <div class="panel-body settings-body">
-                <label for="themeSetting">Theme</label>
-                <select id="themeSetting">
-                    <option value="classic">Classic</option>
-                    <option value="midnight">Midnight</option>
-                    <option value="sunset">Sunset</option>
-                </select>
-                <label for="fontSetting">Font</label>
-                <select id="fontSetting">
-                    <option value="capsmall">Pixel Caps</option>
-                    <option value="lowsmall">Pixel Small</option>
-                    <option value="lowbig">Pixel Big</option>
-                </select>
-                <label for="textSizeSetting">Text Size</label>
-                <select id="textSizeSetting">
-                    <option value="1">Normal</option>
-                    <option value="1.15">Large</option>
-                    <option value="1.3">Extra Large</option>
-                </select>
-                <label class="settings-check" for="motionSetting">
-                    <input type="checkbox" id="motionSetting" checked /> Enable motion
-                </label>
-                <div class="tab-cloak-settings">
-                    <h2>Tab cloak</h2>
+                <section class="settings-section" aria-labelledby="appearance-settings-heading">
+                    <h2 id="appearance-settings-heading">Appearance</h2>
+                    <label for="themeSetting">Theme</label>
+                    <select id="themeSetting">
+                        <option value="classic">Classic</option>
+                        <option value="midnight">Midnight</option>
+                        <option value="sunset">Sunset</option>
+                    </select>
+                    <label for="fontSetting">Font</label>
+                    <select id="fontSetting">
+                        <option value="capsmall">Pixel Caps</option>
+                        <option value="lowsmall">Pixel Small</option>
+                        <option value="lowbig">Pixel Big</option>
+                    </select>
+                    <label for="textSizeSetting">Text Size</label>
+                    <select id="textSizeSetting">
+                        <option value="1">Normal</option>
+                        <option value="1.15">Large</option>
+                        <option value="1.3">Extra Large</option>
+                    </select>
+                    <label class="settings-check" for="motionSetting">
+                        <input type="checkbox" id="motionSetting" checked /> Enable motion
+                    </label>
+                    <button type="button" id="resetSettingsBtn" class="btn-secondary">Reset Settings</button>
+                </section>
+                <section class="settings-section tab-cloak-settings" aria-labelledby="cloak-settings-heading">
+                    <h2 id="cloak-settings-heading">Tab cloak</h2>
                     <label for="cloakTitleInput">Tab title</label>
                     <input id="cloakTitleInput" type="text" maxlength="60" placeholder="Google" value="Google" />
                     <label for="cloakDomainInput">Favicon domain</label>
@@ -154,33 +168,38 @@
                         <button type="button" id="resetCloakBtn" class="btn-secondary">Reset</button>
                     </div>
                     <p id="cloakStatus" class="cloak-status" aria-live="polite">Uses a.favicon.im to load the selected site's icon.</p>
-                </div>
-                <button type="button" id="resetSettingsBtn" class="btn-secondary">Reset Settings</button>
-                <div class="commit-check">
-                    <button type="button" id="checkCommitBtn" class="btn-secondary">Check Current Commit</button>
-                    <p id="currentCommitStatus" class="current-commit-status" aria-live="polite">Commit not checked yet.</p>
-                </div>
-                <div id="profileSection" class="box" hidden>
-                    <div class="user-header">
-                        <span id="authBadge" class="btn-icon"></span>
-                        <p><span id="displayUsername" class="user-stuffs">Loading...</span></p>
-                    </div>
-                    <p><span id="displayFlair" class="user-stuffs profile-flair">Loading...</span></p>
+                </section>
+                <section class="settings-section" aria-labelledby="account-settings-heading">
+                    <h2 id="account-settings-heading">Account</h2>
+                    <div id="profileSection" class="box" hidden>
+                        <div class="user-header">
+                            <span id="authBadge" class="btn-icon"></span>
+                            <p><span id="displayUsername" class="user-stuffs">Loading...</span></p>
+                        </div>
+                        <p><span id="displayFlair" class="user-stuffs profile-flair">Loading...</span></p>
                         <div id="addPasswordContainer" style="display:none;">
+                            <hr />
+                            <input type="password" id="newPasswordInput" placeholder="New Password (min 6 chars)" />
+                            <button id="addPasswordBtn"><span class="btn-icon icon-signup"></span>Add Password to Account</button>
+                        </div>
                         <hr />
-                        <input type="password" id="newPasswordInput" placeholder="New Password (min 6 chars)" />
-                        <button id="addPasswordBtn"><span class="btn-icon icon-signup"></span>Add Password to Account</button>
+                        <input type="text" id="editUsername" placeholder="New Username" />
+                        <input type="text" id="editFlair" placeholder="New Flair" />
+                        <label class="flair-color-control" for="editFlairColor">Flair Color</label>
+                        <input type="color" id="editFlairColor" value="#000000" title="Choose flair color" />
+                        <button id="updateProfileBtn"><span class="btn-icon icon-save"></span>Save Profile Changes</button>
+                        <button id="refreshBtn" class="btn-secondary"><span class="btn-icon icon-refresh"></span>Reload Profile Data</button>
+                        <button id="deleteAccountBtn" class="btn-danger"><span class="btn-icon icon-delete"></span>Delete Account</button>
+                        <button id="signOutBtn"><span class="btn-icon icon-signout"></span>Sign Out</button>
                     </div>
-                    <hr />
-                    <input type="text" id="editUsername" placeholder="New Username" />
-                    <input type="text" id="editFlair" placeholder="New Flair" />
-                    <label class="flair-color-control" for="editFlairColor">Flair Color</label>
-                    <input type="color" id="editFlairColor" value="#000000" title="Choose flair color" />
-                    <button id="updateProfileBtn"><span class="btn-icon icon-save"></span>Save Profile Changes</button>
-                    <button id="refreshBtn" class="btn-secondary"><span class="btn-icon icon-refresh"></span>Reload Profile Data</button>
-                    <button id="deleteAccountBtn" class="btn-danger"><span class="btn-icon icon-delete"></span>Delete Account</button>
-                    <button id="signOutBtn"><span class="btn-icon icon-signout"></span>Sign Out</button>
-                </div>
+                </section>
+                <section class="settings-section" aria-labelledby="tools-settings-heading">
+                    <h2 id="tools-settings-heading">Tools</h2>
+                    <div class="commit-check">
+                        <button type="button" id="checkCommitBtn" class="btn-secondary">Check Current Commit</button>
+                        <p id="currentCommitStatus" class="current-commit-status" aria-live="polite">Commit not checked yet.</p>
+                    </div>
+                </section>
             </div>
         </section>
         <section id="gamesView" class="panel games-panel" aria-labelledby="games-heading" hidden>

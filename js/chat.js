@@ -26,6 +26,11 @@ const chatElements = {
   roomSelect: document.getElementById('chatRoomSelect'),
   roomForm: document.getElementById('chatRoomForm'),
   roomInput: document.getElementById('chatRoomInput'),
+  joinForm: document.getElementById('chatJoinForm'),
+  inviteInput: document.getElementById('chatInviteInput'),
+  inviteShare: document.getElementById('chatInviteShare'),
+  inviteCode: document.getElementById('chatInviteCode'),
+  copyInviteButton: document.getElementById('copyChatInviteBtn'),
   onlineCount: document.getElementById('chatOnlineCount')
 };
 
@@ -128,6 +133,14 @@ async function loadRooms() {
     chatState.knownMessageKeys.clear();
   }
   renderRooms();
+  if (!chatState.currentRoomId) {
+    chatElements.messages.replaceChildren();
+    const empty = document.createElement('p');
+    empty.className = 'chat-empty';
+    empty.textContent = 'No chats yet. Create a private chat or join one with a single-use sharing code.';
+    chatElements.messages.append(empty);
+    chatElements.status.textContent = 'Private chats';
+  }
   return Boolean(chatState.currentRoomId);
 }
 
@@ -273,21 +286,56 @@ chatElements.roomForm.addEventListener('submit', async (event) => {
     return;
   }
 
-  const { data, error } = await _supabase
-    .from('chat_rooms')
-    .insert({ name, created_by: user.id })
-    .select('id, name, created_by, created_at')
-    .single();
+  const { data, error } = await _supabase.rpc('create_private_chat', { p_name: name });
   if (error) {
-    showPopup(error.code === '23505' ? 'A chat with that name already exists' : `Could not create chat: ${error.message}`, 'error');
+    showPopup(`Could not create private chat: ${error.message}`, 'error');
+    return;
+  }
+  const created = Array.isArray(data) ? data[0] : data;
+  if (!created?.room_id || !created?.share_code) {
+    showPopup('The server did not return a private chat sharing code.', 'error');
     return;
   }
   chatElements.roomInput.value = '';
-  chatState.rooms.push(data);
-  chatState.currentRoomId = data.id;
+  chatState.rooms.push({ id: created.room_id, name: created.room_name });
+  chatState.currentRoomId = created.room_id;
   chatState.knownMessageKeys.clear();
   renderRooms();
+  chatElements.inviteCode.textContent = created.share_code;
+  chatElements.inviteShare.hidden = false;
   await loadChat();
+});
+
+chatElements.joinForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const code = chatElements.inviteInput.value.trim().toLowerCase();
+  if (!code) return;
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (!user) {
+    showPopup('Sign in before joining a private chat', 'warning');
+    return;
+  }
+
+  const { data: roomId, error } = await _supabase.rpc('join_chat_with_code', { p_code: code });
+  if (error) {
+    showPopup(`Could not join private chat: ${error.message}`, 'error');
+    return;
+  }
+  chatElements.inviteInput.value = '';
+  chatElements.inviteShare.hidden = true;
+  chatState.currentRoomId = roomId;
+  chatState.knownMessageKeys.clear();
+  await loadChat();
+  showPopup('Joined the private chat. That sharing code can no longer be used.', 'success');
+});
+
+chatElements.copyInviteButton.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(chatElements.inviteCode.textContent);
+    showPopup('One-time sharing code copied', 'success');
+  } catch {
+    showPopup('Copy was blocked by the browser. Select the code and copy it manually.', 'warning');
+  }
 });
 
 chatElements.form.addEventListener('submit', async (event) => {

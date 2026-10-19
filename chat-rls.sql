@@ -13,28 +13,35 @@ grant select, update on table public.profiles to authenticated;
 
 create table if not exists public.chat_rooms (
 	id uuid primary key default gen_random_uuid(),
-	name text not null unique check (char_length(name) between 1 and 40),
+	name text not null check (char_length(name) between 1 and 40),
 	created_by uuid references auth.users(id),
 	created_at timestamptz not null default now()
 );
 
-alter table public.chat_rooms enable row level security;
+alter table public.chat_rooms drop constraint if exists chat_rooms_name_key;
 
-drop policy if exists "Authenticated users can read chat rooms" on public.chat_rooms;
-create policy "Authenticated users can read chat rooms"
-on public.chat_rooms for select to authenticated using (true);
+insert into public.chat_rooms (name)
+select 'General'
+where not exists (
+	select 1 from public.chat_rooms where name = 'General'
+);
 
-drop policy if exists "Users can create chat rooms" on public.chat_rooms;
-create policy "Users can create chat rooms"
-on public.chat_rooms for insert to authenticated
-with check (created_by = auth.uid());
+create table if not exists public.chat_room_members (
+	room_id uuid not null references public.chat_rooms(id) on delete cascade,
+	user_id uuid not null references auth.users(id) on delete cascade,
+	joined_at timestamptz not null default now(),
+	primary key (room_id, user_id)
+);
 
-grant select, insert on table public.chat_rooms to authenticated;
+create table if not exists public.chat_invites (
+	code text primary key,
+	room_id uuid not null references public.chat_rooms(id) on delete cascade,
+	created_by uuid not null references auth.users(id),
+	created_at timestamptz not null default now(),
+	consumed_by uuid references auth.users(id),
+	consumed_at timestamptz
+);
 
-insert into public.chat_rooms (name) values ('General')
-on conflict (name) do nothing;
-
-alter table public.chat enable row level security;
 alter table public.chat
 	add column if not exists room_id uuid references public.chat_rooms(id);
 
@@ -45,12 +52,141 @@ where room_id is null
 
 alter table public.chat alter column room_id set not null;
 
+-- Keep existing rooms private to their creator and users who actually participated.
+insert into public.chat_room_members (room_id, user_id)
+select rooms.id, rooms.created_by
+from public.chat_rooms as rooms
+where rooms.created_by is not null
+union
+select messages.room_id, messages.uuid
+from public.chat as messages
+where messages.uuid is not null
+on conflict (room_id, user_id) do nothing;
+
+create or replace function public.is_chat_room_member(p_room_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+	select exists (
+		select 1 from public.chat_room_members
+		where room_id = p_room_id and user_id = auth.uid()
+	);
+$$;
+
+create or replace function public.create_private_chat(p_name text)
+returns table (room_id uuid, room_name text, share_code text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+	v_user_id uuid := auth.uid();
+	v_room_id uuid;
+	v_room_name text := regexp_replace(trim(p_name), '\s+', ' ', 'g');
+	v_code text;
+	v_first_words text[] := array['funny', 'happy', 'bright', 'cosmic', 'gentle', 'sleepy', 'tiny', 'golden', 'swift', 'fuzzy'];
+	v_second_words text[] := array['apple', 'comet', 'otter', 'waffle', 'panda', 'planet', 'muffin', 'turtle', 'cookie', 'kiwi'];
+begin
+	if v_user_id is null then
+		raise exception 'Sign in to create a private chat';
+	end if;
+	if v_room_name is null or char_length(v_room_name) < 1 or char_length(v_room_name) > 40 then
+		raise exception 'Chat names must be between 1 and 40 characters';
+	end if;
+
+	insert into public.chat_rooms (name, created_by)
+	values (v_room_name, v_user_id)
+	returning id into v_room_id;
+
+	insert into public.chat_room_members (room_id, user_id)
+	values (v_room_id, v_user_id);
+
+	loop
+		v_code := v_first_words[1 + floor(random() * array_length(v_first_words, 1))::int]
+			|| '-' || v_second_words[1 + floor(random() * array_length(v_second_words, 1))::int]
+			|| '-' || lpad(floor(random() * 1000000000)::bigint::text, 9, '0');
+		begin
+			insert into public.chat_invites (code, room_id, created_by)
+			values (v_code, v_room_id, v_user_id);
+			exit;
+		exception when unique_violation then
+			-- Generate another code if the random invite collides with an existing one.
+			null;
+		end;
+	end loop;
+
+	return query select v_room_id, v_room_name, v_code;
+end;
+$$;
+
+create or replace function public.join_chat_with_code(p_code text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+	v_user_id uuid := auth.uid();
+	v_room_id uuid;
+begin
+	if v_user_id is null then
+		raise exception 'Sign in to join a private chat';
+	end if;
+
+	update public.chat_invites
+	set consumed_by = v_user_id, consumed_at = now()
+	where code = lower(trim(p_code)) and consumed_at is null
+	returning chat_invites.room_id into v_room_id;
+
+	if v_room_id is null then
+		raise exception 'This sharing code is invalid or has already been used';
+	end if;
+
+	insert into public.chat_room_members (room_id, user_id)
+	values (v_room_id, v_user_id)
+	on conflict (room_id, user_id) do nothing;
+
+	return v_room_id;
+end;
+$$;
+
+revoke all on function public.is_chat_room_member(uuid) from public;
+revoke all on function public.create_private_chat(text) from public;
+revoke all on function public.join_chat_with_code(text) from public;
+grant execute on function public.is_chat_room_member(uuid) to authenticated;
+grant execute on function public.create_private_chat(text) to authenticated;
+grant execute on function public.join_chat_with_code(text) to authenticated;
+
+alter table public.chat_rooms enable row level security;
+alter table public.chat_room_members enable row level security;
+alter table public.chat_invites enable row level security;
+
+drop policy if exists "Authenticated users can read chat rooms" on public.chat_rooms;
+drop policy if exists "Users can create chat rooms" on public.chat_rooms;
+drop policy if exists "Members can read their chat rooms" on public.chat_rooms;
+create policy "Members can read their chat rooms"
+on public.chat_rooms for select to authenticated
+using (public.is_chat_room_member(id));
+
+drop policy if exists "Users can read their room memberships" on public.chat_room_members;
+create policy "Users can read their room memberships"
+on public.chat_room_members for select to authenticated
+using (user_id = auth.uid());
+
+revoke insert, update, delete on public.chat_rooms from authenticated;
+revoke all on public.chat_invites from anon, authenticated;
+grant select on public.chat_rooms, public.chat_room_members to authenticated;
+
 drop policy if exists "Authenticated users can read chat" on public.chat;
+drop policy if exists "Chat members can read room messages" on public.chat;
 create policy "Authenticated users can read chat"
 on public.chat
 for select
 to authenticated
-using (true);
+using (public.is_chat_room_member(room_id));
 
 drop policy if exists "Users can insert their own chat messages" on public.chat;
 create policy "Users can insert their own chat messages"
@@ -59,7 +195,7 @@ for insert
 to authenticated
 with check (
 	uuid = auth.uid()
-	and exists (select 1 from public.chat_rooms where id = room_id)
+	and public.is_chat_room_member(room_id)
 );
 
 grant select, insert on table public.chat to authenticated;
