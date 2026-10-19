@@ -552,6 +552,8 @@ html[data-theme="sunset"] {
     padding: 24px;
 }
 #authSectionHeader { margin: 0 0 16px; }
+.auth-description { margin: 0 0 20px; color: var(--color-text); font-family: 'lowsmall'; font-size: 16px; text-align: center; }
+.google-login-button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 52px; margin: 0; font-size: 16px; }
 body:not(.is-authenticated) #viewTabs,
 body:not(.is-authenticated) .page,
 body:not(.is-authenticated) .build-indicator {

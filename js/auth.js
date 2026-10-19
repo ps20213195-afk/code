@@ -223,66 +223,7 @@ function updateAuthBadgesAndProviders(user) {
   }
 }
 
-// 3. SIGN UP FUNCTION
-document.getElementById('signUpBtn').addEventListener('click', async () => {
-  const email = document.getElementById('email').value.trim().toLowerCase();
-  const password = document.getElementById('password').value;
-  const username = document.getElementById('username').value || 'potato';
-  const flair = document.getElementById('flair').value || 'Novice';
-
-  if (!email || !password) {
-    showPopup("Please enter an email and password!", 'error');
-    return;
-  }
-  if (password.length < 6) {
-    showPopup("Password must be at least 6 characters!", 'error');
-    return;
-  }
-
-  printLog("Sending signup request...");
-  const { data, error } = await _supabase.auth.signUp({
-    email: email,
-    password: password,
-    options: {
-      data: { username: username, flair: flair }
-    }
-  });
-
-  if (error) {
-    printLog("❌ Signup Error: " + error.message);
-    showPopup(`Signup failed: ${error.message}`, 'error');
-  } else {
-    printLog("✅ Signup successful!");
-    showPopup("Created new account!", 'success');
-  }
-});
-
-// 4. SIGN IN FUNCTION
-document.getElementById('signInBtn').addEventListener('click', async () => {
-  const email = document.getElementById('email').value.trim().toLowerCase();
-  const password = document.getElementById('password').value;
-
-  if (!email || !password) {
-    showPopup('Enter your email and password.', 'error');
-    return;
-  }
-  if (password.length < 6) {
-    showPopup('Password must be at least 6 characters!', 'error');
-    return;
-  }
-
-  printLog("Logging in...");
-  showPopup("Logging in...", 'info');
-  const { error } = await _supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    printLog("❌ Login Error: " + error.message);
-    showPopup(`Login failed: ${error.message}`, 'error');
-  } else {
-    showPopup("Logged in successfully!", 'success');
-  }
-});
-
-// GOOGLE SIGN IN
+// Google-only sign in
 document.getElementById('googleSignInBtn').addEventListener('click', async () => {
   printLog("Redirecting to Google...");
   showPopup("Redirecting to Google...", 'info');
