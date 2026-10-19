@@ -1,9 +1,13 @@
 const chatState = {
   channel: null,
+  presenceChannel: null,
+  presenceRoomId: null,
   rows: [],
+  rooms: [],
   profiles: new Map(),
   knownMessageKeys: new Set(),
   currentUserId: null,
+  currentRoomId: null,
   isLoading: false
 };
 
@@ -18,11 +22,23 @@ const chatElements = {
   messages: document.getElementById('chatMessages'),
   form: document.getElementById('chatForm'),
   input: document.getElementById('chatInput'),
-  status: document.getElementById('chatStatus')
+  status: document.getElementById('chatStatus'),
+  roomSelect: document.getElementById('chatRoomSelect'),
+  roomForm: document.getElementById('chatRoomForm'),
+  roomInput: document.getElementById('chatRoomInput'),
+  onlineCount: document.getElementById('chatOnlineCount')
 };
 
+const CENSORED_WORDS = ['asshole', 'bastard', 'bitch', 'crap', 'damn', 'fuck', 'shit'];
+
+function censorMessage(message) {
+  const words = CENSORED_WORDS.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])(${words})(?=$|[^\\p{L}\\p{N}])`, 'giu');
+  return String(message).replace(pattern, (match, prefix, word) => `${prefix}${'*'.repeat(word.length)}`);
+}
+
 function getChatText(row) {
-  return row.msg || '';
+  return censorMessage(row.msg || '');
 }
 
 function getMessageKey(row) {
@@ -80,13 +96,91 @@ function renderChat() {
   chatElements.messages.scrollTop = chatElements.messages.scrollHeight;
 }
 
+function renderRooms() {
+  chatElements.roomSelect.replaceChildren();
+  chatState.rooms.forEach((room) => {
+    const option = document.createElement('option');
+    option.value = room.id;
+    option.textContent = room.name;
+    chatElements.roomSelect.append(option);
+  });
+  if (chatState.currentRoomId) chatElements.roomSelect.value = chatState.currentRoomId;
+}
+
+async function loadRooms() {
+  const { data, error } = await _supabase
+    .from('chat_rooms')
+    .select('id, name, created_by, created_at')
+    .order('name', { ascending: true });
+  if (error) {
+    chatElements.status.textContent = 'Setup required';
+    chatElements.messages.replaceChildren();
+    const setupMessage = document.createElement('p');
+    setupMessage.className = 'chat-empty';
+    setupMessage.textContent = 'Chat rooms are not set up yet. Run the updated chat-rls.sql in Supabase.';
+    chatElements.messages.append(setupMessage);
+    return false;
+  }
+
+  chatState.rooms = data || [];
+  if (!chatState.rooms.some((room) => room.id === chatState.currentRoomId)) {
+    chatState.currentRoomId = chatState.rooms[0]?.id || null;
+    chatState.knownMessageKeys.clear();
+  }
+  renderRooms();
+  return Boolean(chatState.currentRoomId);
+}
+
+function updateOnlineCount() {
+  if (!chatElements.onlineCount) return;
+  const presence = chatState.presenceChannel?.presenceState() || {};
+  const uniqueUsers = new Set();
+  Object.values(presence).flat().forEach((entry) => {
+    if (entry.user_id) uniqueUsers.add(entry.user_id);
+  });
+  chatElements.onlineCount.textContent = `${uniqueUsers.size} online`;
+}
+
+async function connectRoomPresence(roomId, userId) {
+  if (chatState.presenceRoomId === roomId && chatState.presenceChannel) {
+    updateOnlineCount();
+    return;
+  }
+  if (chatState.presenceChannel) {
+    const previousChannel = chatState.presenceChannel;
+    chatState.presenceChannel = null;
+    chatState.presenceRoomId = null;
+    await _supabase.removeChannel(previousChannel);
+  }
+  if (!roomId || !userId) {
+    chatElements.onlineCount.textContent = 'Sign in to see online users';
+    return;
+  }
+
+  chatState.presenceRoomId = roomId;
+  chatState.presenceChannel = _supabase.channel(`chat-presence-${roomId}`, {
+    config: { presence: { key: userId } }
+  });
+  chatState.presenceChannel
+    .on('presence', { event: 'sync' }, updateOnlineCount)
+    .on('presence', { event: 'join' }, updateOnlineCount)
+    .on('presence', { event: 'leave' }, updateOnlineCount)
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await chatState.presenceChannel.track({ user_id: userId, online_at: new Date().toISOString() });
+        updateOnlineCount();
+      }
+    });
+}
+
 async function loadChat() {
   if (chatState.isLoading) return;
   chatState.isLoading = true;
-  chatElements.status.textContent = 'Loading...';
   try {
+    const roomsAvailable = await loadRooms();
+    if (!roomsAvailable) return;
     const [{ data, error }, { data: { user } }] = await Promise.all([
-      _supabase.from('chat').select('*'),
+      _supabase.from('chat').select('*').eq('room_id', chatState.currentRoomId).order('created_at', { ascending: true }).limit(200),
       _supabase.auth.getUser()
     ]);
     if (error) {
@@ -99,6 +193,7 @@ async function loadChat() {
       return;
     }
     chatState.currentUserId = user?.id || null;
+    await connectRoomPresence(chatState.currentRoomId, chatState.currentUserId);
     const rows = data || [];
     const newRows = chatState.knownMessageKeys.size === 0
       ? []
@@ -115,8 +210,11 @@ async function loadChat() {
       (profiles || []).forEach((profile) => chatState.profiles.set(profile.id, profile));
     }
     notifyNewMessages(newRows);
-    chatElements.status.textContent = 'Connected';
+    chatElements.status.textContent = 'Connected · refreshes every 2 seconds';
     renderChat();
+  } catch (error) {
+    chatElements.status.textContent = 'Unavailable';
+    console.error('Could not refresh chat:', error);
   } finally {
     chatState.isLoading = false;
   }
@@ -159,9 +257,42 @@ chatElements.tabs.forEach((tab) => {
   });
 });
 
+chatElements.roomSelect.addEventListener('change', async () => {
+  chatState.currentRoomId = chatElements.roomSelect.value;
+  chatState.knownMessageKeys.clear();
+  await loadChat();
+});
+
+chatElements.roomForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const name = chatElements.roomInput.value.trim().replace(/\s+/g, ' ');
+  if (!name) return;
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (!user) {
+    showPopup('Sign in before creating a chat', 'warning');
+    return;
+  }
+
+  const { data, error } = await _supabase
+    .from('chat_rooms')
+    .insert({ name, created_by: user.id })
+    .select('id, name, created_by, created_at')
+    .single();
+  if (error) {
+    showPopup(error.code === '23505' ? 'A chat with that name already exists' : `Could not create chat: ${error.message}`, 'error');
+    return;
+  }
+  chatElements.roomInput.value = '';
+  chatState.rooms.push(data);
+  chatState.currentRoomId = data.id;
+  chatState.knownMessageKeys.clear();
+  renderRooms();
+  await loadChat();
+});
+
 chatElements.form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const message = chatElements.input.value.trim();
+  const message = censorMessage(chatElements.input.value.trim());
   if (!message) return;
 
   const { data: { user } } = await _supabase.auth.getUser();
@@ -171,7 +302,11 @@ chatElements.form.addEventListener('submit', async (event) => {
   }
 
   chatElements.status.textContent = 'Sending...';
-  const { error } = await _supabase.from('chat').insert({ uuid: user.id, msg: message });
+  const { error } = await _supabase.from('chat').insert({
+    uuid: user.id,
+    room_id: chatState.currentRoomId,
+    msg: message
+  });
   if (error) {
     chatElements.status.textContent = 'Send blocked';
     const details = error.code === '42501'
@@ -185,5 +320,7 @@ chatElements.form.addEventListener('submit', async (event) => {
 });
 
 loadChat();
-setInterval(loadChat, 2000);
+setInterval(() => {
+  if (!chatElements.chatView.hidden) loadChat();
+}, 2000);
 connectChatRealtime();

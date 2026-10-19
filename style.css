@@ -375,7 +375,13 @@ body {
 .music-controls label { font-family: 'lowsmall'; }
 .music-controls input { width: 180px; margin: 0; padding: 0; accent-color: var(--color-heading); }
 @keyframes music-pulse { from { transform: scaleY(0.65); } to { transform: scaleY(1); } }
-.chat-body { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 12px; height: 100%; min-height: 0; overflow: hidden; }
+.chat-body { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 12px; height: 100%; min-height: 0; overflow: hidden; }
+.chat-header-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; }
+.chat-room-toolbar { display: grid; grid-template-columns: minmax(120px, 0.7fr) minmax(180px, 1fr); gap: 8px; }
+.chat-room-toolbar select { min-width: 0; padding: 8px; border: 3px solid var(--color-input-border); background: var(--color-control-surface); color: var(--color-text); font-family: 'lowsmall'; font-size: 15px; }
+.chat-room-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.chat-room-form input { min-width: 0; margin: 0; }
+.chat-room-form button { width: auto; margin: 0; }
 .chat-messages { display: grid; align-content: start; gap: 6px; height: 100%; min-height: 0; overflow-y: scroll; overscroll-behavior: contain; }
 .chat-message { padding: 8px; background: var(--color-card-surface); border-left: 4px solid var(--color-heading); }
 .chat-message-meta { margin: 0 0 4px; color: var(--color-heading); font-family: 'capsmall'; font-size: 14px; }
@@ -387,7 +393,18 @@ body {
 .chat-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .chat-form input { margin: 0; min-width: 0; }
 .chat-form button { width: auto; min-width: 96px; margin: 0; }
+.tab-cloak-settings { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border: 3px solid var(--color-white); background: var(--color-card-surface); }
+.tab-cloak-settings h2 { margin: 0; color: var(--color-heading); font-family: 'lowbig'; font-size: 19px; }
+.tab-cloak-settings input { margin: 0; }
+.cloak-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.settings-body .cloak-actions button { margin: 0; }
+.cloak-status { min-height: 18px; margin: 0; font-family: 'lowsmall'; font-size: 13px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+@media (max-width: 560px) {
+    .chat-room-toolbar { grid-template-columns: 1fr; }
+    .chat-header-status { gap: 6px; }
+}
 html[data-theme="midnight"] {
     --color-page: #17212b;
     --color-panel-surface: #273746;

@@ -6,7 +6,7 @@
     <title>SKYBASE M093A V3.1</title>
     <link id="favicon" rel="icon" type="image/png" href="./assets/favicon.png?v=20260915">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./js/favicon.js" defer></script>
+    <script src="./js/favicon.js"></script>
     <link rel="stylesheet" href="./style.css?v=20260916-2">
 </head>
 <body>
@@ -94,9 +94,21 @@
         <section id="chatView" class="panel chat-panel" aria-labelledby="chat-heading" hidden>
             <div class="panel-header">
                 <h1 id="chat-heading">Chat</h1>
-                <span id="chatStatus" class="chat-status">Loading...</span>
+                <div class="chat-header-status">
+                    <span id="chatOnlineCount" class="chat-status" aria-live="polite">0 online</span>
+                    <span id="chatStatus" class="chat-status">Loading...</span>
+                </div>
             </div>
             <div class="panel-body chat-body">
+                <div class="chat-room-toolbar">
+                    <label class="sr-only" for="chatRoomSelect">Choose chat room</label>
+                    <select id="chatRoomSelect" aria-label="Choose chat room"></select>
+                    <form id="chatRoomForm" class="chat-room-form">
+                        <label class="sr-only" for="chatRoomInput">New chat name</label>
+                        <input id="chatRoomInput" type="text" maxlength="40" placeholder="Create a chat..." autocomplete="off" required />
+                        <button type="submit">Create</button>
+                    </form>
+                </div>
                 <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
                 <form id="chatForm" class="chat-form">
                     <label class="sr-only" for="chatInput">Message</label>
@@ -131,6 +143,18 @@
                 <label class="settings-check" for="motionSetting">
                     <input type="checkbox" id="motionSetting" checked /> Enable motion
                 </label>
+                <div class="tab-cloak-settings">
+                    <h2>Tab cloak</h2>
+                    <label for="cloakTitleInput">Tab title</label>
+                    <input id="cloakTitleInput" type="text" maxlength="60" placeholder="Google" value="Google" />
+                    <label for="cloakDomainInput">Favicon domain</label>
+                    <input id="cloakDomainInput" type="text" maxlength="253" placeholder="google.com" value="google.com" />
+                    <div class="cloak-actions">
+                        <button type="button" id="applyCloakBtn">Apply cloak</button>
+                        <button type="button" id="resetCloakBtn" class="btn-secondary">Reset</button>
+                    </div>
+                    <p id="cloakStatus" class="cloak-status" aria-live="polite">Uses a.favicon.im to load the selected site's icon.</p>
+                </div>
                 <button type="button" id="resetSettingsBtn" class="btn-secondary">Reset Settings</button>
                 <div class="commit-check">
                     <button type="button" id="checkCommitBtn" class="btn-secondary">Check Current Commit</button>
@@ -246,6 +270,7 @@
     <script src="./js/achievements.js"></script>
     <script src="./js/auth.js?v=20260916-3"></script>
     <script src="./js/chat.js"></script>
+    <script src="./js/cloak.js"></script>
     <script src="./js/settings.js"></script>
     <script src="./js/games.js"></script>
     <script src="./js/music.js?v=20260916-2"></script>
