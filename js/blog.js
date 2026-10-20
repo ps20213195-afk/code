@@ -4,7 +4,18 @@ const blogMenuElement = document.getElementById('blogMenu');
 const blogPostForm = document.getElementById('blogPostForm');
 const BLOG_INDEX_URL = './blog/index.json';
 const BLOG_REPOSITORY_API = 'https://api.github.com/repos/ps20213195-afk/code/contents/blog?ref=main';
+const GUEST_POSTS_KEY = 'skybase-guest-blog-posts';
+const GUEST_COMMENTS_KEY = 'skybase-guest-blog-comments';
 let selectedBlogPostId = null;
+
+function readGuestStorage(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || 'null');
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
 
 function parseBlogPost(rawText, filename) {
   const lines = rawText.replace(/^\uFEFF/, '').split(/\r?\n/);
@@ -183,7 +194,7 @@ function renderBlogPost(post) {
     if (media) content.append(media);
   }
   article.append(header, content);
-  if (post.source === 'community') appendComments(article, post);
+  if (post.source === 'community' || post.source === 'guest') appendComments(article, post);
   return article;
 }
 
@@ -244,6 +255,14 @@ async function loadStaticPosts() {
 }
 
 async function loadCommunityPosts() {
+  if (window.GUEST_MODE) {
+    return readGuestStorage(GUEST_POSTS_KEY).map((post) => ({
+      ...post,
+      source: 'guest',
+      author: 'Guest',
+      flair: 'Local preview'
+    }));
+  }
   const { data, error } = await _supabase
     .from('blog_posts')
     .select('id, title, body, media_url, author_id, created_at')
@@ -329,12 +348,18 @@ async function appendComments(article, post) {
   section.append(form);
   article.append(section);
 
-  const { data, error } = await _supabase
-    .from('blog_comments')
-    .select('id, body, media_url, author_id, created_at')
-    .eq('post_id', post.databaseId)
-    .order('created_at', { ascending: true })
-    .limit(200);
+  let data;
+  let error;
+  if (window.GUEST_MODE) {
+    data = readGuestStorage(GUEST_COMMENTS_KEY).filter((comment) => comment.post_id === post.databaseId);
+  } else {
+    ({ data, error } = await _supabase
+      .from('blog_comments')
+      .select('id, body, media_url, author_id, created_at')
+      .eq('post_id', post.databaseId)
+      .order('created_at', { ascending: true })
+      .limit(200));
+  }
   if (error) {
     status.textContent = 'Comments unavailable. Apply blog-rls.sql in Supabase.';
   } else {
@@ -351,7 +376,7 @@ async function appendComments(article, post) {
       item.className = 'blog-comment';
       const meta = document.createElement('p');
       meta.className = 'blog-comment-meta';
-      meta.textContent = `${profiles.get(comment.author_id)?.username || 'Skybase user'} · ${new Date(comment.created_at).toLocaleString()}`;
+      meta.textContent = `${window.GUEST_MODE ? 'Guest' : profiles.get(comment.author_id)?.username || 'Skybase user'} · ${new Date(comment.created_at).toLocaleString()}`;
       const text = document.createElement('p');
       text.className = 'blog-comment-body';
       appendBodyWithLinks(text, comment.body);
@@ -368,8 +393,10 @@ async function appendComments(article, post) {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     status.textContent = 'Posting comment...';
-    const { data: { user } } = await _supabase.auth.getUser();
-    if (!user) {
+    const { data: { user } } = window.GUEST_MODE
+      ? { data: { user: null } }
+      : await _supabase.auth.getUser();
+    if (!window.GUEST_MODE && !user) {
       status.textContent = 'Sign in to comment.';
       return;
     }
@@ -380,12 +407,21 @@ async function appendComments(article, post) {
       status.textContent = 'Use an HTTPS image, file, or GIPHY link.';
       return;
     }
-    const { error: insertError } = await _supabase.from('blog_comments').insert({
+    const newComment = {
       post_id: post.databaseId,
-      author_id: user.id,
+      author_id: user?.id || null,
       body,
-      media_url: mediaUrl || null
-    });
+      media_url: mediaUrl || null,
+      created_at: new Date().toISOString()
+    };
+    let insertError = null;
+    if (window.GUEST_MODE) {
+      const comments = readGuestStorage(GUEST_COMMENTS_KEY);
+      comments.push(newComment);
+      localStorage.setItem(GUEST_COMMENTS_KEY, JSON.stringify(comments));
+    } else {
+      ({ error: insertError } = await _supabase.from('blog_comments').insert(newComment));
+    }
     if (insertError) {
       status.textContent = 'Could not post comment. Apply blog-rls.sql in Supabase.';
       console.error('Could not post blog comment.', insertError);
@@ -433,7 +469,7 @@ async function loadBlogPosts() {
       const selectedPost = posts.find((post) => post.id === selectedBlogPostId) || posts[0];
       blogPostsElement.replaceChildren(renderBlogPost(selectedPost));
     }
-    blogStatusElement.textContent = `${posts.length} post${posts.length === 1 ? '' : 's'}${communityUnavailable ? ' · community posts unavailable (apply blog-rls.sql)' : ''}`;
+    blogStatusElement.textContent = `${posts.length} post${posts.length === 1 ? '' : 's'}${window.GUEST_MODE ? ' · local guest preview' : communityUnavailable ? ' · community posts unavailable (apply blog-rls.sql)' : ''}`;
   } catch (error) {
     console.error('Could not load blog posts.', error);
     blogStatusElement.textContent = 'Blog files unavailable';
@@ -445,8 +481,10 @@ blogPostForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
   const status = blogPostForm.querySelector('.blog-form-status');
   status.textContent = 'Publishing...';
-  const { data: { user } } = await _supabase.auth.getUser();
-  if (!user) {
+  const { data: { user } } = window.GUEST_MODE
+    ? { data: { user: null } }
+    : await _supabase.auth.getUser();
+  if (!window.GUEST_MODE && !user) {
     status.textContent = 'Sign in to publish a post.';
     return;
   }
@@ -461,19 +499,31 @@ blogPostForm?.addEventListener('submit', async (event) => {
     status.textContent = 'Use an HTTPS image, file, or GIPHY link.';
     return;
   }
-  const { error } = await _supabase.from('blog_posts').insert({
+  const post = {
     title,
     body,
     media_url: mediaUrl || null,
-    author_id: user.id
-  });
+    author_id: user?.id || null,
+    created_at: new Date().toISOString()
+  };
+  let error = null;
+  if (window.GUEST_MODE) {
+    post.id = `guest-${crypto.randomUUID()}`;
+    post.databaseId = post.id;
+    post.source = 'guest';
+    const posts = readGuestStorage(GUEST_POSTS_KEY);
+    posts.unshift(post);
+    localStorage.setItem(GUEST_POSTS_KEY, JSON.stringify(posts));
+  } else {
+    ({ error } = await _supabase.from('blog_posts').insert(post));
+  }
   if (error) {
     status.textContent = 'Could not publish. Apply blog-rls.sql in Supabase.';
     console.error('Could not publish blog post.', error);
     return;
   }
   blogPostForm.reset();
-  status.textContent = 'Post published.';
+  status.textContent = window.GUEST_MODE ? 'Saved to this browser only.' : 'Post published.';
   await loadBlogPosts();
 });
 

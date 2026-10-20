@@ -17,6 +17,7 @@
             <button id="googleSignInBtn" class="google-login-button"><span class="btn-icon icon-google"></span>Continue with Google</button>
         </div>
     </section>
+    <button type="button" id="guestModeButton" class="guest-mode-button" hidden>Enter guest dev mode</button>
     <nav id="viewTabs" class="view-tabs" aria-label="Main views">
         <button type="button" class="view-tab is-active" data-view="home" aria-selected="true">
             <span class="view-tab-icon icon-home" aria-hidden="true"></span>
@@ -177,6 +178,7 @@
                 <section class="settings-section" aria-labelledby="account-settings-heading">
                     <h2 id="account-settings-heading">Account</h2>
                     <div id="profileSection" class="box" hidden>
+                        <p id="guestModeNotice" class="guest-mode-notice" hidden>Guest preview: changes stay in this browser and are not shared.</p>
                         <div class="user-header">
                             <span id="authBadge" class="btn-icon"></span>
                             <p><span id="displayUsername" class="user-stuffs">Loading...</span></p>

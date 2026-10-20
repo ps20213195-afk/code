@@ -227,6 +227,15 @@ async function connectRoomPresence(roomId, userId) {
 }
 
 async function loadChat() {
+  if (window.GUEST_MODE) {
+    chatElements.status.textContent = 'Guest preview · chat is read-only';
+    chatElements.messages.replaceChildren();
+    const previewMessage = document.createElement('p');
+    previewMessage.className = 'chat-empty';
+    previewMessage.textContent = 'Sign in to view private chats or send messages.';
+    chatElements.messages.append(previewMessage);
+    return;
+  }
   if (chatState.isLoading) {
     chatState.reloadRequested = true;
     return;
@@ -463,8 +472,8 @@ chatElements.form.addEventListener('submit', async (event) => {
   await loadChat();
 });
 
-loadChat();
+if (!window.GUEST_MODE) loadChat();
 setInterval(() => {
-  if (!chatElements.chatView.hidden) loadChat();
+  if (!window.GUEST_MODE && !chatElements.chatView.hidden) loadChat();
 }, 2000);
-connectChatRealtime();
+if (!window.GUEST_MODE) connectChatRealtime();

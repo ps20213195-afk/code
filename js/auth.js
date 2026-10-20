@@ -2,6 +2,11 @@
 const SUPABASE_URL = 'https://xsaxbcwwtpyeyigupyaw.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable__wRv8jB4Mr7U1cQKkhHESQ_r_J8_P3V';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const GUEST_MODE_STORAGE_KEY = 'skybase-guest-dev-mode';
+const GUEST_MODE_ALLOWED = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
+  || window.location.protocol === 'file:';
+window.GUEST_MODE = GUEST_MODE_ALLOWED && localStorage.getItem(GUEST_MODE_STORAGE_KEY) === 'true';
+if (GUEST_MODE_ALLOWED) document.getElementById('guestModeButton').hidden = false;
 
 const logEl = document.getElementById('log');
 function printLog(msg) {
@@ -170,9 +175,51 @@ function showInputPopup(message, inputType = 'text') {
   });
 }
 
+function applyGuestMode() {
+  window.GUEST_MODE = true;
+  document.body.classList.add('is-authenticated', 'is-guest');
+  document.getElementById('authSection').hidden = true;
+  document.getElementById('profileSection').hidden = false;
+  document.getElementById('guestModeNotice').hidden = false;
+  document.getElementById('displayUsername').textContent = 'Guest';
+  document.getElementById('displayFlair').textContent = 'Local preview';
+  document.getElementById('guestModeButton').textContent = 'Exit guest mode';
+  document.getElementById('guestModeButton').setAttribute('aria-label', 'Exit guest mode and return to sign in');
+  document.getElementById('addPasswordContainer').hidden = true;
+  ['editUsername', 'editFlair', 'editFlairColor', 'updateProfileBtn', 'refreshBtn', 'deleteAccountBtn', 'signOutBtn']
+    .forEach((id) => {
+      const element = document.getElementById(id);
+      if (element) element.hidden = true;
+    });
+}
+
+if (window.GUEST_MODE) {
+  applyGuestMode();
+  void _supabase.auth.signOut({ scope: 'local' });
+}
+
+document.getElementById('guestModeButton').addEventListener('click', async () => {
+  if (!GUEST_MODE_ALLOWED) return;
+  if (window.GUEST_MODE) {
+    localStorage.removeItem(GUEST_MODE_STORAGE_KEY);
+    window.location.reload();
+    return;
+  }
+  localStorage.setItem(GUEST_MODE_STORAGE_KEY, 'true');
+  window.GUEST_MODE = true;
+  applyGuestMode();
+  await _supabase.auth.signOut({ scope: 'local' });
+  window.location.reload();
+});
+
 // 2. LISTEN FOR AUTH CHANGES
 _supabase.auth.onAuthStateChange(async (event, session) => {
   printLog(`Auth Event: ${event}`);
+
+  if (window.GUEST_MODE) {
+    applyGuestMode();
+    return;
+  }
   
   if (session) {
     document.body.classList.add('is-authenticated');

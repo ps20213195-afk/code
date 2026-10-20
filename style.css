@@ -606,6 +606,10 @@ body:not(.is-authenticated) .build-indicator {
     display: none;
 }
 body.is-authenticated #authSection { display: none; }
+#guestModeButton { position: fixed; right: 20px; bottom: 20px; z-index: 30; width: auto; margin: 0; padding: 12px 16px; border: 3px solid var(--color-white); background: var(--color-control-pressed); box-shadow: 4px 4px 0 var(--color-shadow); font-family: 'capsmall'; font-size: 13px; }
+body.is-authenticated:not(.is-guest) #guestModeButton { display: none; }
+body.is-guest #guestModeButton { background: var(--color-heading); }
+.guest-mode-notice { padding: 8px; border: 2px solid var(--color-heading); background: var(--color-control-pressed); font-family: 'lowsmall'; font-size: 13px; }
 #profileSection[hidden] { display: none; }
 #profileSection {
     width: min(100%, 520px);
