@@ -270,7 +270,25 @@
                 <span id="blogStatus" class="chat-status" aria-live="polite">Loading posts...</span>
             </div>
             <div class="blog-layout">
-                <nav id="blogMenu" class="blog-menu" aria-label="Blog posts"></nav>
+                <aside class="blog-sidebar">
+                    <form id="blogPostForm" class="blog-compose-form">
+                        <h2>Write a post</h2>
+                        <label for="blogTitleInput">Title</label>
+                        <input id="blogTitleInput" type="text" maxlength="120" placeholder="Post title" required />
+                        <label for="blogBodyInput">Post</label>
+                        <textarea id="blogBodyInput" maxlength="10000" rows="5" placeholder="Share something with everyone..." required></textarea>
+                        <label for="blogMediaInput">Picture, file, or GIPHY link (optional)</label>
+                        <input id="blogMediaInput" type="url" maxlength="2048" placeholder="https://..." />
+                        <label for="blogGiphyQuery">Find a GIF on GIPHY</label>
+                        <div class="blog-giphy-search">
+                            <input id="blogGiphyQuery" type="search" placeholder="Search GIFs" />
+                            <button type="button" id="blogGiphySearchButton" class="btn-secondary">Search</button>
+                        </div>
+                        <button type="submit">Publish post</button>
+                        <p class="blog-form-status" aria-live="polite"></p>
+                    </form>
+                    <nav id="blogMenu" class="blog-menu" aria-label="Blog posts"></nav>
+                </aside>
                 <div id="blogPosts" class="panel-body blog-posts" aria-live="polite"></div>
             </div>
         </section>

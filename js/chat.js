@@ -40,7 +40,9 @@ const chatElements = {
 
 const onlineProfileCache = new Map();
 
-const CENSORED_WORDS = ['asshole', 'bastard', 'bitch', 'crap', 'damn', 'fuck', 'shit'];
+const CENSORED_WORDS = ['asshole', 'bastard', 'bitch', 'crap', 'damn', 'fuck', 'shit',
+  'thats what she said', 'whore', 'slut', 'dick', 'cock', 'pussy', 'cunt', 'fag', 'faggot', 'nigger', 'nigga', 'retard'
+];
 
 function censorMessage(message) {
   const words = CENSORED_WORDS.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
