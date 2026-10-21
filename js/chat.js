@@ -21,6 +21,7 @@ const chatElements = {
   gamesView: document.getElementById('gamesView'),
   musicView: document.getElementById('musicView'),
   blogView: document.getElementById('blogView'),
+  extensionsView: document.getElementById('extensionsView'),
   messages: document.getElementById('chatMessages'),
   form: document.getElementById('chatForm'),
   input: document.getElementById('chatInput'),
@@ -41,7 +42,7 @@ const chatElements = {
 const onlineProfileCache = new Map();
 
 const CENSORED_WORDS = ['asshole', 'bastard', 'bitch', 'crap', 'damn', 'fuck', 'shit',
-  'thats what she said', 'whore', 'slut', 'dick', 'cock', 'pussy', 'cunt', 'fag', 'faggot', 'nigger', 'nigga', 'retard'
+  'thats what she said', 'whore', 'slut', 'dick', 'cock', 'pussy', 'cunt', 'fag', 'faggot', 'nigger', 'nigga', 'retard', 'retarded'
 ];
 
 function censorMessage(message) {
@@ -315,22 +316,27 @@ chatElements.tabs.forEach((tab) => {
     const isGames = tab.dataset.view === 'games';
     const isMusic = tab.dataset.view === 'music';
     const isBlog = tab.dataset.view === 'blog';
+    const isExtensions = tab.dataset.view === 'extensions';
     const selectedView = isHome ? chatElements.homeView
       : isChat ? chatElements.chatView
       : isSettings ? chatElements.settingsView
         : isGames ? chatElements.gamesView
         : isMusic ? chatElements.musicView
           : isBlog ? chatElements.blogView
+            : isExtensions ? chatElements.extensionsView
         : chatElements.achievementsView;
     chatElements.tabs.forEach((item) => {
       const active = item === tab;
       item.classList.toggle('is-active', active);
       item.setAttribute('aria-selected', String(active));
     });
-    [chatElements.homeView, chatElements.achievementsView, chatElements.chatView, chatElements.settingsView, chatElements.gamesView, chatElements.musicView, chatElements.blogView]
+    [chatElements.homeView, chatElements.achievementsView, chatElements.chatView, chatElements.settingsView, chatElements.gamesView, chatElements.musicView, chatElements.blogView, chatElements.extensionsView]
       .forEach((view) => {
         view.hidden = view !== selectedView;
       });
+    document.querySelectorAll('.extension-view').forEach((view) => {
+      view.hidden = true;
+    });
     if (!isGames) window.closeActiveGame?.();
     if (isChat) {
       loadChat();

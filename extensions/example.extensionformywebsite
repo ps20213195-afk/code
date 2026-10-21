@@ -1,0 +1,42 @@
+!@TYPE: WIN;
+!@NAME: Pixel Focus Board(example extension);
+&&START1&&;
+<style>
+.focus-board { display: grid; gap: 18px; max-width: 860px; }
+.focus-hero { position: relative; overflow: hidden; padding: 24px; border: 3px solid #20243a; background: linear-gradient(135deg, #d8f4e5, #e9e5ff 65%, #ffe6bd); color: #20243a; }
+.focus-kicker { margin: 0 0 8px; color: #56627f; font-family: 'capsmall'; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.focus-hero h2 { max-width: 580px; margin: 0; color: #20243a; font-family: 'lowbig'; font-size: clamp(24px, 5vw, 38px); line-height: 1.12; }
+.focus-hero p:last-child { max-width: 540px; margin: 12px 0 0; font-family: 'lowsmall'; line-height: 1.6; }
+.focus-spark { position: absolute; right: 24px; top: 8px; color: #6b5ac7; font-size: 76px; line-height: 1; }
+.focus-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+.focus-card { display: grid; align-content: start; gap: 10px; padding: 16px; border: 2px solid #d4d9e7; background: #fff; color: #25283a; }
+.focus-card h3 { margin: 0; color: #39336f; font-family: 'lowbig'; font-size: 19px; }
+.focus-card p { margin: 0; color: #555b70; font-family: 'lowsmall'; line-height: 1.5; }
+.focus-check { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: start; gap: 10px; padding: 9px 0; border-top: 1px solid #e5e7ef; color: #272a3b; font-family: 'lowsmall'; line-height: 1.45; cursor: pointer; }
+.focus-check input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: #6255bb; }
+.focus-note { padding: 12px 14px; border-left: 4px solid #6255bb; background: #f0efff; color: #39336f; font-family: 'lowsmall'; line-height: 1.5; }
+</style>
+<div class="focus-board">
+	<header class="focus-hero">
+		<p class="focus-kicker">A little room to think</p>
+		<h2>Make space for what matters.</h2>
+		<p>A lightweight checklist for choosing one priority, taking a breather, and finishing the day with a win. Your checked items are saved in this browser.</p>
+		<span class="focus-spark" aria-hidden="true">✳</span>
+	</header>
+	<div class="focus-grid">
+		<section class="focus-card">
+			<h3>Start gently</h3>
+			<p>Small steps count. Pick a starting point, not a perfect plan.</p>
+			<label class="focus-check"><input type="checkbox" data-extension-persist="pick-one">Choose one thing to focus on</label>
+			<label class="focus-check"><input type="checkbox" data-extension-persist="quiet-notifications">Quiet distractions for a little while</label>
+		</section>
+		<section class="focus-card">
+			<h3>Keep your pace</h3>
+			<p>Give your attention a reset before it runs out.</p>
+			<label class="focus-check"><input type="checkbox" data-extension-persist="take-break">Take a short stretch or water break</label>
+			<label class="focus-check"><input type="checkbox" data-extension-persist="small-win">Notice one thing you finished</label>
+		</section>
+	</div>
+	<aside class="focus-note"><strong>Reminder:</strong> progress can be quiet. You can come back to the rest later.</aside>
+</div>
+&&END1&&;

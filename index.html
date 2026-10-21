@@ -43,6 +43,10 @@
             <span class="view-tab-icon icon-blog" aria-hidden="true"></span>
             <span>Blog</span>
         </button>
+        <button type="button" class="view-tab" data-view="extensions" aria-selected="false">
+            <span class="view-tab-icon icon-extensions" aria-hidden="true"></span>
+            <span>Extensions</span>
+        </button>
         <button type="button" class="view-tab" data-view="settings" aria-selected="false">
             <span class="view-tab-icon icon-settings" aria-hidden="true"></span>
             <span>Settings</span>
@@ -294,6 +298,23 @@
                 <div id="blogPosts" class="panel-body blog-posts" aria-live="polite"></div>
             </div>
         </section>
+        <section id="extensionsView" class="panel extensions-panel" aria-labelledby="extensions-heading" hidden>
+            <div class="panel-header">
+                <h1 id="extensions-heading">Extensions</h1>
+                <span id="extensionsStatus" class="chat-status" aria-live="polite">Loading extensions...</span>
+            </div>
+            <div class="panel-body extensions-body">
+                <p class="extensions-intro">Browse site extensions and install the ones you want. Each installed extension gets its own navigation tab. Installs are saved in this browser. Scripts require your explicit approval and run with this website’s privileges; only install scripts you trust. Themes can change the whole site’s appearance.</p>
+                <section aria-labelledby="available-extensions-heading">
+                    <h2 id="available-extensions-heading">Available</h2>
+                    <div id="extensionCatalog" class="extension-grid" aria-live="polite"></div>
+                </section>
+                <section aria-labelledby="installed-extensions-heading">
+                    <h2 id="installed-extensions-heading">Installed</h2>
+                    <div id="installedExtensions" class="installed-extensions" aria-live="polite"></div>
+                </section>
+            </div>
+        </section>
     </main> 
     <div id="popupStack" class="popup-stack" aria-live="assertive" aria-atomic="false"></div>
     <p class="build-indicator" aria-label="Build information">
@@ -330,6 +351,7 @@
     <script src="./js/music.js?v=20260916-2"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+    <script src="./js/extensions.js"></script>
     <script src="./js/blog.js"></script>
 </body>
 </html>

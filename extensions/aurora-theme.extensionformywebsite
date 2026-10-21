@@ -1,0 +1,34 @@
+!@TYPE: THEME;
+!@NAME: Aurora Night;
+^/\^
+^theme
+color-scheme: dark;
+^colorset
+--color-page: #111827;
+--color-panel-surface: #1f2937;
+--color-panel-header-surface: #243449;
+--color-panel-body-surface: #172334;
+--color-card-surface: #26384a;
+--color-control-surface: #33475c;
+--color-control-pressed: #425b70;
+--color-text: #e7f2ff;
+--color-heading: #79e0d0;
+--color-divider: rgba(121, 224, 208, 0.25);
+--color-input-border: #6aa99f;
+--color-button-border: #6aa99f;
+--color-notification-surface: rgba(31, 41, 55, 0.92);
+^body
+background: var(--color-page);
+color: var(--color-text);
+^panel
+border-color: #416174;
+box-shadow: 0 10px 28px rgba(4, 12, 24, 0.24);
+^header
+background: linear-gradient(110deg, #243449, #284956);
+^heading
+text-shadow: 0 0 14px rgba(121, 224, 208, 0.2);
+^button
+transition: filter 150ms ease, transform 150ms ease;
+^tab
+border-color: #476376;
+v\/v

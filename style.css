@@ -274,6 +274,8 @@ body {
     display: grid;
     align-content: start;
     gap: 6px;
+    max-height: calc(100vh - var(--page-padding) * 2);
+    overflow-y: auto;
     grid-column: 1;
     grid-row: 1;
     padding: 6px;
@@ -314,6 +316,7 @@ body {
 .icon-games { background-image: url('https://cdn.jsdelivr.net/npm/pixelarticons@1.8.1/svg/gamepad.svg'); }
 .icon-music { background-image: url('https://cdn.jsdelivr.net/npm/pixelarticons@1.8.1/svg/music.svg'); }
 .icon-blog { background-image: url('https://cdn.jsdelivr.net/npm/pixelarticons@1.8.1/svg/book.svg'); }
+.icon-extensions { background-image: url('./assets/extensions-icon.svg'); }
 .view-content { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--page-gap); min-height: 0; }
 .view-content { height: 100%; }
 .view-content[hidden] { display: none; }
@@ -359,6 +362,30 @@ body {
 .music-panel[hidden] { display: none !important; }
 .blog-panel { width: 100%; height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
 .blog-panel[hidden] { display: none !important; }
+.extensions-panel { width: 100%; height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.extensions-panel[hidden] { display: none !important; }
+.extensions-body { display: grid; align-content: start; gap: 16px; min-height: 0; overflow-y: auto; padding: 16px; background: var(--color-panel-body-surface); }
+.extensions-body section { display: grid; align-content: start; gap: 8px; }
+.extensions-body h2 { margin: 0; color: var(--color-heading); font-family: 'lowbig'; font-size: 20px; }
+.extensions-intro { margin: 0; padding: 10px; border: 2px solid var(--color-white); background: var(--color-card-surface); font-family: 'lowsmall'; }
+.extension-view { width: 100%; height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.extension-view[hidden] { display: none !important; }
+.extension-view .panel-header h3 { margin: 0; color: var(--color-heading); font-family: 'lowbig'; font-size: 22px; overflow-wrap: anywhere; }
+.extension-view-body { display: grid; align-content: start; justify-items: start; gap: 12px; min-height: 0; overflow: auto; padding: 16px; background: var(--color-panel-body-surface); }
+.extension-view-body > p { margin: 0; color: var(--color-muted); font-family: 'lowsmall'; }
+.extension-view-body > button { width: auto; margin: 0; }
+.extension-grid, .installed-extensions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); align-items: start; gap: 10px; }
+.extension-card, .installed-extension { min-width: 0; padding: 12px; border: 3px solid var(--color-white); background: var(--color-card-surface); }
+.extension-card { display: grid; align-content: start; gap: 8px; }
+.extension-card h3, .installed-extension h3 { margin: 0; color: var(--color-heading); font-family: 'lowbig'; font-size: 18px; overflow-wrap: anywhere; }
+.extension-card p, .installed-extension p { margin: 0; font-family: 'lowsmall'; overflow-wrap: anywhere; }
+.extension-kind { color: var(--color-muted); font-size: 13px; }
+.extension-card button, .installed-extension button { width: auto; justify-self: start; margin: 0; }
+.installed-extension { position: relative; display: grid; align-content: start; gap: 8px; }
+.installed-extension-content { min-width: 0; overflow-wrap: anywhere; }
+.installed-extension-content img { max-width: 100%; height: auto; }
+.installed-extension-content pre { max-width: 100%; overflow: auto; }
+.extension-empty { margin: 0; color: var(--color-muted); font-family: 'lowsmall'; }
 .blog-layout { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 12px; min-height: 0; padding: 12px; background: var(--color-panel-body-surface); }
 .blog-sidebar { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 12px; min-height: 0; }
 .blog-compose-form { display: grid; align-content: start; gap: 7px; padding: 12px; border: 3px solid var(--color-white); background: var(--color-card-surface); }

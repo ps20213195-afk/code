@@ -4,5 +4,5 @@
 const favicon = document.getElementById('favicon');
 function changeFavicon(newFaviconUrl) {
     favicon.href = newFaviconUrl;
-    console.log('Just because you changed the favicon to ' + newFaviconUrl + ' does not mean you are tuff. go get a life!');
+    console.log('Just because you changed the favicon to ' + newFaviconUrl + ' ,and you opened the developer console, does not mean you are tuff. go get a life, discord mods!');
 }
