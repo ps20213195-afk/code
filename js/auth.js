@@ -297,6 +297,18 @@ function applyFlairColor(color) {
   return normalizedColor;
 }
 
+function getDefaultUsername(userId) {
+  return userId ? `User ${userId.slice(0, 6)}` : 'User';
+}
+
+function getProfileUsername(userId, username) {
+  const name = typeof username === 'string' ? username.trim() : '';
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(name);
+  return name && !isUuid && name.toLowerCase() !== String(userId || '').toLowerCase()
+    ? name
+    : getDefaultUsername(userId);
+}
+
 async function fetchProfile(userId) {
   printLog("Fetching profile row from SQL table...");
   const { data, error } = await _supabase
@@ -309,13 +321,17 @@ async function fetchProfile(userId) {
     printLog("❌ Database Query Error: " + error.message);
   } else if (!data) {
     printLog("⚠️ Connected, but profile row missing.");
+    const defaultUsername = getDefaultUsername(userId);
+    document.getElementById('displayUsername').textContent = defaultUsername;
+    document.getElementById('editUsername').value = defaultUsername;
     showPopup("Could not load some data", 'warning');
   } else {
-    document.getElementById('displayUsername').textContent = data.username;
+    const username = getProfileUsername(userId, data.username);
+    document.getElementById('displayUsername').textContent = username;
     document.getElementById('displayFlair').textContent = data.flair;
     applyFlairColor(data.flair_color);
     
-    document.getElementById('editUsername').value = data.username || '';
+    document.getElementById('editUsername').value = username;
     document.getElementById('editFlair').value = data.flair || '';
     if (!isValidFlairColor(data.flair_color)) {
       printLog('⚠️ Profile flair_color was missing or invalid; using black.');

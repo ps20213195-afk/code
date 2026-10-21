@@ -1,6 +1,13 @@
 -- Run this in the Supabase SQL editor for the public.chat and profiles tables.
 alter table public.profiles enable row level security;
 
+drop policy if exists "Authenticated users can read chat profiles" on public.profiles;
+create policy "Authenticated users can read chat profiles"
+on public.profiles
+for select
+to authenticated
+using (true);
+
 drop policy if exists "Users can update their own profile" on public.profiles;
 create policy "Users can update their own profile"
 on public.profiles
@@ -10,6 +17,35 @@ using (id = auth.uid())
 with check (id = auth.uid());
 
 grant select, update on table public.profiles to authenticated;
+
+-- Replace missing or UUID-only profile names with a readable default.
+create or replace function public.set_default_profile_username()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+	if new.username is null
+		or btrim(new.username) = ''
+		or lower(btrim(new.username)) = lower(new.id::text)
+		or btrim(new.username) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+		new.username := 'User ' || left(new.id::text, 6);
+	end if;
+	return new;
+end;
+$$;
+
+drop trigger if exists profiles_default_username on public.profiles;
+create trigger profiles_default_username
+before insert or update of username on public.profiles
+for each row execute function public.set_default_profile_username();
+
+update public.profiles
+set username = 'User ' || left(id::text, 6)
+where username is null
+	or btrim(username) = ''
+	or lower(btrim(username)) = lower(id::text)
+	or btrim(username) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
 
 create table if not exists public.chat_rooms (
 	id uuid primary key default gen_random_uuid(),

@@ -58,12 +58,19 @@ function getMessageKey(row) {
   return row.id || row.chat_row_id || `${row.uuid || 'anonymous'}:${row.created_at || ''}:${getChatText(row)}`;
 }
 
+function getChatUsername(userId, username) {
+  const name = typeof username === 'string' ? username.trim() : '';
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(name);
+  if (name && !isUuid && name.toLowerCase() !== String(userId || '').toLowerCase()) return name;
+  return userId ? `User ${userId.slice(0, 6)}` : 'User';
+}
+
 function notifyNewMessages(rows) {
   rows
     .filter((row) => row.uuid !== chatState.currentUserId)
     .forEach((row) => {
       const profile = chatState.profiles.get(row.uuid);
-      const username = profile?.username || row.uuid || 'Somebody';
+      const username = getChatUsername(row.uuid, profile?.username);
       if (chatElements.chatView.hidden) {
         showPopup(`${username} sent a new message`, 'info');
       } else {
@@ -90,7 +97,7 @@ function renderChat() {
     const profile = chatState.profiles.get(row.uuid);
     const username = document.createElement('span');
     username.className = 'chat-username';
-    username.textContent = profile?.username || row.uuid || 'Anonymous';
+    username.textContent = getChatUsername(row.uuid, profile?.username);
     meta.append(username);
     if (profile?.flair) {
       const separator = document.createTextNode(' | ');
@@ -181,8 +188,9 @@ async function updateOnlineCount() {
   onlineUsers.forEach((presenceName, userId) => {
     const chip = document.createElement('span');
     chip.className = 'chat-online-user';
-    chip.title = userId;
-    chip.textContent = presenceName || onlineProfileCache.get(userId) || `User ${userId.slice(0, 6)}`;
+    const username = getChatUsername(userId, presenceName || onlineProfileCache.get(userId));
+    chip.title = username;
+    chip.textContent = username;
     chatElements.onlineUsers.append(chip);
   });
 }
@@ -268,10 +276,13 @@ async function loadChat() {
     chatState.profiles = new Map();
     const uuids = [...new Set(chatState.rows.map((row) => row.uuid).filter(Boolean))];
     if (uuids.length) {
-      const { data: profiles } = await _supabase
+      const { data: profiles, error: profilesError } = await _supabase
         .from('profiles')
         .select('id, username, flair, flair_color')
         .in('id', uuids);
+      if (profilesError) {
+        console.warn('Could not load chat player profiles. Check the profiles SELECT policy in chat-rls.sql.', profilesError);
+      }
       (profiles || []).forEach((profile) => chatState.profiles.set(profile.id, profile));
     }
     notifyNewMessages(newRows);
