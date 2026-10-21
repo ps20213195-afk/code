@@ -1,5 +1,15 @@
 !@TYPE: THEME;
 !@NAME: Aurora Night;
+&&START1&&;
+<style>
+.aurora-theme-note { max-width: 680px; padding: 18px; border: 2px solid var(--color-heading); background: var(--color-panel-body-surface); color: var(--color-text); font-family: 'lowsmall'; line-height: 1.6; }
+.aurora-theme-note h2 { margin: 0 0 8px; color: var(--color-heading); font-family: 'lowbig'; }
+</style>
+<article class="aurora-theme-note">
+	<h2>Aurora Night theme</h2>
+	<p>This extension combines a regular content block with a custom theme block. Apply the theme, then switch between Classic, Midnight, and Sunset in Settings—the Aurora colors stay on top.</p>
+</article>
+&&END1&&;
 ^/\^
 ^theme
 color-scheme: dark;

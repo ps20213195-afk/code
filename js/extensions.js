@@ -11,8 +11,8 @@ const EXTENSION_THEME_STORAGE_KEY = 'skybase-active-extension-theme';
 const EXTENSION_TYPES = new Set(['WIN', 'COL', 'PAR', 'CSS', 'THEME']);
 const executedExtensionScripts = new Set();
 const EXTENSION_THEME_SELECTORS = {
-  '^theme': ':root',
-  '^colorset': ':root',
+  '^theme': 'html[data-theme]',
+  '^colorset': 'html[data-theme]',
   '^body': 'body',
   '^panel': '.panel',
   '^header': '.panel-header',
@@ -86,29 +86,18 @@ function parseExtensionFile(text, id) {
   const type = typeMatch?.[1]?.toUpperCase();
   if (!type || !EXTENSION_TYPES.has(type)) throw new Error('Missing or unsupported !@TYPE directive.');
 
-  const blocks = [];
-  const blockPattern = type === 'THEME'
-    ? /\^\/\\\^([\s\S]*?)v\\\/v/g
-    : /&&START(\d+)&&;([\s\S]*?)&&END\1&&;/g;
-  let match;
-  while ((match = blockPattern.exec(text))) blocks.push(type === 'THEME' ? match[1].trim() : match[2].trim());
-  if (!blocks.length) {
-    throw new Error(type === 'THEME'
-      ? 'No theme block found. Use ^/\\^ to start and v\\/v to end it.'
-      : 'No matching &&STARTn&&; / &&ENDn&&; content blocks were found.');
+  const htmlBlocks = [...text.matchAll(/&&START(\d+)&&;([\s\S]*?)&&END\1&&;/g)]
+    .map((match) => match[2].trim());
+  const themeBlocks = [...text.matchAll(/\^\/\\\^([\s\S]*?)v\\\/v/g)]
+    .map((match) => match[1].trim());
+  if (!htmlBlocks.length && !themeBlocks.length) {
+    throw new Error('No extension content found. Add an &&STARTn&&; / &&ENDn&&; block, a ^/\\^ / v\\/v theme block, or both.');
+  }
+  if (type === 'THEME' && !themeBlocks.length) {
+    throw new Error('THEME extensions need a ^/\\^ ... v\\/v theme block.');
   }
 
-  if (type === 'THEME') {
-    return {
-      id,
-      name: (nameMatch?.[1] || id).trim(),
-      type,
-      blocks: [],
-      themeCss: blocks.map(parseThemeBlock).join('\n')
-    };
-  }
-
-  const sanitized = blocks.map((html) => {
+  const sanitized = htmlBlocks.map((html) => {
     const source = new DOMParser().parseFromString(html, 'text/html');
     const scripts = [...source.querySelectorAll('script')]
       .filter((script) => {
@@ -134,7 +123,8 @@ function parseExtensionFile(text, id) {
     id,
     name: (nameMatch?.[1] || id).trim(),
     type,
-    blocks: sanitized
+    blocks: sanitized,
+    themeCss: themeBlocks.length ? themeBlocks.map(parseThemeBlock).join('\n') : ''
   };
 }
 
@@ -274,13 +264,14 @@ function renderInstalledExtensions(extensions) {
     body.className = 'panel-body extension-view-body';
     body.append(description);
 
-    if (extension.type === 'THEME') {
+    if (extension.themeCss) {
       const applyTheme = document.createElement('button');
       applyTheme.type = 'button';
       applyTheme.textContent = 'Apply theme';
       applyTheme.addEventListener('click', () => applyExtensionTheme(extension));
       body.append(applyTheme);
-    } else {
+    }
+    if (extension.blocks.length) {
       body.append(content);
     }
 
@@ -357,9 +348,10 @@ function renderExtensionCatalog(extensions) {
     type.className = 'extension-kind';
     const scriptCount = extension.blocks.reduce((count, block) => count + (block.scripts?.length || 0), 0);
     const scriptsApproved = getApprovedScriptExtensionIds().has(extension.id);
-    type.textContent = extension.type === 'THEME'
-      ? 'THEME · custom site-wide colors and styles'
-      : `${extension.type} · ${extension.blocks.length} content block${extension.blocks.length === 1 ? '' : 's'}${scriptCount ? ` · ${scriptCount} script${scriptCount === 1 ? '' : 's'}` : ''}`;
+    const details = [extension.type, `${extension.blocks.length} content block${extension.blocks.length === 1 ? '' : 's'}`];
+    if (extension.themeCss) details.push('theme included');
+    if (scriptCount) details.push(`${scriptCount} script${scriptCount === 1 ? '' : 's'}`);
+    type.textContent = details.join(' · ');
     const filename = document.createElement('p');
     filename.textContent = extension.id;
     const button = document.createElement('button');

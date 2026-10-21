@@ -222,10 +222,49 @@
                 </div>
             </div>
             <div class="games-body">
-                <div id="gamesList" class="games-list" aria-label="Available games"></div>
-                <div class="game-frame-wrap">
-                    <div id="gameEmpty" class="game-empty">Choose a game to start playing.</div>
-                    <iframe id="gameFrame" title="Embedded game" allowfullscreen hidden></iframe>
+                <aside class="games-sidebar">
+                    <section class="game-room-panel" aria-labelledby="game-room-heading">
+                        <h2 id="game-room-heading">Play together</h2>
+                        <p id="gameRoomStatus" class="game-room-status" aria-live="polite">Create a room or join with a code. Rooms are live while players stay connected.</p>
+                        <div class="game-room-actions">
+                            <button type="button" id="createGameRoomBtn">Create room</button>
+                            <form id="joinGameRoomForm">
+                                <label class="sr-only" for="joinGameRoomCode">Game room code</label>
+                                <input id="joinGameRoomCode" type="text" maxlength="8" placeholder="ROOM CODE" autocomplete="off" />
+                                <button type="submit" class="btn-secondary">Join</button>
+                            </form>
+                        </div>
+                        <div id="gameRoomInvite" class="game-room-invite" hidden>
+                            <span>Share this room code</span>
+                            <output id="gameRoomCode"></output>
+                            <button type="button" id="copyGameRoomCodeBtn" class="btn-secondary">Copy code</button>
+                            <button type="button" id="leaveGameRoomBtn" class="btn-danger">Leave room</button>
+                        </div>
+                        <p id="gameRoomPlayers" class="game-room-players" aria-live="polite">No room connected</p>
+                    </section>
+                    <label class="sr-only" for="gameSearchInput">Search built-in games</label>
+                    <input id="gameSearchInput" class="game-search" type="search" placeholder="Search 22 games..." />
+                    <div id="gamesList" class="games-list" aria-label="Built-in games"></div>
+                    <section class="external-games-panel" aria-labelledby="external-games-heading">
+                        <h2 id="external-games-heading">External multiplayer games</h2>
+                        <div id="externalGamesList" class="external-games-list"></div>
+                    </section>
+                </aside>
+                <div class="game-play-area">
+                    <div class="game-play-header">
+                        <div>
+                            <h2 id="gameTitle">Choose a game</h2>
+                            <p id="gameDescription">Pick a built-in game or open an external game in a new tab.</p>
+                        </div>
+                        <button type="button" id="fullscreenGameBtn" class="icon-button" title="Enter fullscreen" aria-label="Enter fullscreen">⛶</button>
+                    </div>
+                    <div id="builtInGame" class="built-in-game">
+                        <div id="gameEmpty" class="game-empty">Create or join a room to play live with friends, or start a game solo.</div>
+                    </div>
+                    <div class="game-frame-wrap" hidden>
+                        <a id="externalGameLink" target="_blank" rel="noopener noreferrer"></a>
+                        <iframe id="gameFrame" title="Embedded game" allowfullscreen hidden></iframe>
+                    </div>
                 </div>
                 <form id="gameAdminForm" class="game-admin" hidden>
                     <h2>Add game</h2>

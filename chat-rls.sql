@@ -366,4 +366,32 @@ with check (created_by = auth.uid() and auth.uid() = '13df2e26-2285-43de-855d-ba
 
 grant select, insert on table public.games to authenticated;
 
+-- Delete chat messages and invite-code records every midnight UTC.
+-- Chat rooms and memberships are intentionally retained.
+create extension if not exists pg_cron with schema pg_catalog;
+
+create or replace function public.cleanup_chat_logs()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+	delete from public.chat;
+	delete from public.chat_invites;
+end;
+$$;
+
+revoke all on function public.cleanup_chat_logs() from public, anon, authenticated;
+
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'delete-chat-and-invite-logs-midnight';
+
+select cron.schedule(
+	'delete-chat-and-invite-logs-midnight',
+	'0 0 * * *',
+	'select public.cleanup_chat_logs()'
+);
+
 notify pgrst, 'reload schema';

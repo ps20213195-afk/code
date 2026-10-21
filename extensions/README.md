@@ -55,7 +55,7 @@ The sample `example.extensionformywebsite` is a complete focus checklist demonst
 
 ## Theme extensions
 
-Set `!@TYPE: THEME;` to create a site-wide theme. Theme blocks use the literal `^/\^` start marker and `v\/v` end marker instead of `&&START...&&;` / `&&END...&&;`. Inside the block, put one supported token on a line, then CSS-style `property: value;` declarations on the following lines. No `#id` or `.class` selectors are needed; the token selects the target.
+Set `!@TYPE: THEME;` to create a site-wide theme. Theme blocks use the literal `^/\^` start marker and `v\/v` end marker. A file may include both these theme blocks and regular `&&START...&&;` / `&&END...&&;` HTML blocks; the installed extension tab displays the HTML and offers an **Apply theme** button. Inside a theme block, put one supported token on a line, then CSS-style `property: value;` declarations on following lines. No `#id` or `.class` selectors are needed; the token selects the target.
 
 ```text
 !@TYPE: THEME;
@@ -73,6 +73,6 @@ color: var(--color-text);
 v\/v
 ```
 
-Supported tokens are `^theme` and `^colorset` (both target the root theme variables), `^body`, `^panel`, `^header`, `^button`, `^text`, `^heading`, `^tab`, and `^input`. Theme declarations are parsed and limited to these targets; external URLs and executable CSS are rejected. Install the theme, open its navigation tab, and select **Apply theme**. The active theme is saved locally and restored on reload. Uninstalling the active theme removes its styling.
+Supported tokens are `^theme` and `^colorset` (both target `html[data-theme]`, with enough selector priority to override Classic, Midnight, and Sunset presets), `^body`, `^panel`, `^header`, `^button`, `^text`, `^heading`, `^tab`, and `^input`. Theme declarations are parsed and limited to these targets; external URLs and executable CSS are rejected. Install the theme, open its navigation tab, and select **Apply theme**. Theme colors stay active when the built-in appearance preset changes. The active extension theme is saved locally and restored on reload. Uninstalling the active theme removes its styling.
 
-`aurora-theme.extensionformywebsite` is a complete theme example.
+`aurora-theme.extensionformywebsite` demonstrates both a normal HTML block and a theme block in the same file.
