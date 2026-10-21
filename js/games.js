@@ -15,14 +15,14 @@ const builtInGames = [
   { id: 'number-hunter', name: 'Number Hunter', mode: 'guess', difficulty: 'Medium', description: 'Guess the hidden number with hot/cold clues.' },
   { id: 'codebreaker', name: 'Codebreaker', mode: 'code', difficulty: 'Hard', description: 'Crack the four-digit code with feedback clues.' },
   { id: 'co-op-builder', name: 'Co-op Builder', mode: 'builder', difficulty: 'Easy', description: 'Work together to gather materials and build a beacon.' },
-  { id: 'neon-runner-3d', name: 'Neon Runner 3D', mode: 'explore', theme: 'neon', difficulty: 'Medium', immersive: true, description: 'Dodge glowing gates in a first-person neon tunnel.' },
-  { id: 'crystal-caverns-3d', name: 'Crystal Caverns 3D', mode: 'explore', theme: 'cave', difficulty: 'Medium', immersive: true, description: 'Race through a gem-lit cavern and collect crystals.' },
-  { id: 'starship-canyon-3d', name: 'Starship Canyon 3D', mode: 'explore', theme: 'space', difficulty: 'Hard', immersive: true, description: 'Pilot through a star canyon without hitting asteroids.' },
-  { id: 'sky-island-dash', name: 'Sky Island Dash', mode: 'explore', theme: 'sky', difficulty: 'Easy', immersive: true, description: 'Weave between floating islands above the clouds.' },
-  { id: 'pixel-maze-3d', name: 'Pixel Maze 3D', mode: 'explore', theme: 'maze', difficulty: 'Hard', immersive: true, description: 'Navigate a perspective maze and find the exit.' },
-  { id: 'alien-asteroid-dodge', name: 'Alien Asteroid Dodge', mode: 'explore', theme: 'alien', difficulty: 'Hard', immersive: true, description: 'Survive the asteroid lane and outlast your rivals.' },
-  { id: 'lunar-relay', name: 'Lunar Relay', mode: 'explore', theme: 'moon', difficulty: 'Medium', immersive: true, description: 'Dash across the lunar track and pass the relay beacon.' },
-  { id: 'jungle-temple-run', name: 'Jungle Temple Run', mode: 'explore', theme: 'jungle', difficulty: 'Hard', immersive: true, description: 'Run the ancient temple course and dodge its hazards.' },
+  { id: 'neon-platformer', name: 'Neon Rooftops', mode: 'platformer', theme: 'neon', difficulty: 'Medium', description: 'Jump between glowing rooftops and collect energy orbs.' },
+  { id: 'crystal-platformer', name: 'Crystal Caverns', mode: 'platformer', theme: 'cave', difficulty: 'Easy', description: 'Explore a crystal cave, leap over gaps, and gather gems.' },
+  { id: 'starship-platformer', name: 'Starship Scramble', mode: 'platformer', theme: 'space', difficulty: 'Hard', description: 'Hop across a starship wreck and reach the escape pod.' },
+  { id: 'sky-island-platformer', name: 'Sky Island Hop', mode: 'platformer', theme: 'sky', difficulty: 'Easy', description: 'Cross floating islands above the clouds.' },
+  { id: 'pixel-maze-platformer', name: 'Pixel Maze Jumper', mode: 'platformer', theme: 'maze', difficulty: 'Hard', description: 'Climb a tricky pixel maze and find the exit portal.' },
+  { id: 'alien-platformer', name: 'Alien Planet Rescue', mode: 'platformer', theme: 'alien', difficulty: 'Medium', description: 'Rescue a stranded rover on a strange alien world.' },
+  { id: 'lunar-platformer', name: 'Lunar Leap', mode: 'platformer', theme: 'moon', difficulty: 'Easy', description: 'Use low lunar gravity to leap between moon rocks.' },
+  { id: 'jungle-platformer', name: 'Jungle Temple Hop', mode: 'platformer', theme: 'jungle', difficulty: 'Hard', description: 'Climb the jungle temple, avoid spikes, and reach the treasure.' },
   { id: 'treasure-quiz', name: 'Treasure Quiz', mode: 'quiz', difficulty: 'Medium', description: 'Answer your way through a co-op treasure hunt.' },
   { id: 'category-chain', name: 'Category Chain', mode: 'word', category: true, difficulty: 'Medium', description: 'Take turns naming something in the displayed category.' }
 ];
@@ -42,6 +42,11 @@ const externalGames = [
 
 const gamesList = document.getElementById('gamesList');
 const externalGamesList = document.getElementById('externalGamesList');
+const gameSearchInput = document.getElementById('gameSearchInput');
+const gameSearchCount = document.getElementById('gameSearchCount');
+const externalGameCount = document.getElementById('externalGameCount');
+const gameChooserWindow = document.getElementById('gameChooserWindow');
+const gamePlayWindow = document.getElementById('gamePlayWindow');
 const gameFrame = document.getElementById('gameFrame');
 const gameFrameWrap = document.querySelector('.game-frame-wrap');
 const externalGameLink = document.getElementById('externalGameLink');
@@ -71,6 +76,10 @@ let roomPlayerList = [];
 let reactionTimer = null;
 let memoryTimer = null;
 let activeCanvas = null;
+let platformerFrame = null;
+let platformerPreviousTime = 0;
+let platformerLastBroadcast = 0;
+const platformerKeys = new Set();
 
 function setText(element, value) {
   if (element) element.textContent = value;
@@ -126,9 +135,10 @@ function makeGameState(game) {
     state.materials = 0;
     state.goal = 20;
     state.builders = {};
-  } else if (game.mode === 'explore') {
-    state.racers = {};
-    state.started = Date.now();
+  } else if (game.mode === 'platformer') {
+    state.platformers = {};
+    state.platformers[playerId()] = createPlatformerPlayer();
+    state.coins = getPlatformerLevel(game).coins.map((coin) => ({ ...coin, collected: false }));
   }
   players.forEach((id) => { state.scores[id] = 0; });
   return state;
@@ -175,21 +185,39 @@ function refreshRoomPlayers() {
   }
 }
 
+function showGameWindow(windowName) {
+  const chooserVisible = windowName === 'chooser';
+  if (chooserVisible) platformerKeys.clear();
+  gameChooserWindow.hidden = !chooserVisible;
+  gamePlayWindow.hidden = chooserVisible;
+  document.getElementById('gamesHeaderStatus').textContent = chooserVisible
+    ? 'Choose a game to play'
+    : gameRoomChannel ? `Playing with ${roomPlayerList.length} connected player${roomPlayerList.length === 1 ? '' : 's'}` : 'Solo practice';
+  if (!chooserVisible) window.closeActiveGame?.();
+}
+
 function renderGameCatalog(filter = '') {
   gamesList.replaceChildren();
   const normalizedFilter = filter.trim().toLowerCase();
-  const games = builtInGames.filter((game) => `${game.name} ${game.description} ${game.difficulty}`.toLowerCase().includes(normalizedFilter));
+  const games = builtInGames.filter((game) => {
+    const searchableText = `${game.name} ${game.id} ${game.description} ${game.difficulty} ${game.mode} ${game.theme || ''} ${game.mode === 'platformer' ? '2d platform jump' : ''}`;
+    return searchableText.toLowerCase().includes(normalizedFilter);
+  });
+  gameSearchCount.textContent = normalizedFilter ? `${games.length} of ${builtInGames.length} built-in` : `${builtInGames.length} built-in games`;
   games.forEach((game) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'game-choice';
     button.dataset.gameId = game.id;
     const name = document.createElement('span');
-    name.textContent = `${game.immersive ? '◈ ' : ''}${game.name}`;
+    name.textContent = `${game.mode === 'platformer' ? '▰ ' : ''}${game.name}`;
     const detail = document.createElement('small');
-    detail.textContent = `${game.difficulty}${game.immersive ? ' · 3D-style' : ''}`;
+    detail.textContent = `${game.difficulty}${game.mode === 'platformer' ? ' · 2D platformer' : ''}`;
     button.append(name, detail);
-    button.addEventListener('click', () => selectBuiltInGame(game));
+    button.addEventListener('click', () => {
+      selectBuiltInGame(game);
+      showGameWindow('play');
+    });
     gamesList.append(button);
   });
   if (!games.length) {
@@ -207,12 +235,28 @@ function appendExternalGame(game) {
   link.href = game.url;
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
+  link.dataset.searchText = `${game.name} ${game.note || ''}`.toLowerCase();
   const label = document.createElement('span');
   label.textContent = game.name;
   const note = document.createElement('span');
   note.textContent = game.note || 'Open game ↗';
   link.append(label, note);
+  link.addEventListener('click', (event) => {
+    event.preventDefault();
+    selectExternalGame(game);
+  });
   externalGamesList.append(link);
+}
+
+function filterExternalGames(filter = '') {
+  const query = filter.trim().toLowerCase();
+  let visible = 0;
+  externalGamesList.querySelectorAll('.external-game-link').forEach((link) => {
+    const match = !query || link.dataset.searchText.includes(query);
+    link.hidden = !match;
+    if (match) visible += 1;
+  });
+  externalGameCount.textContent = query ? `${visible} of ${externalGamesList.children.length} games` : `${externalGamesList.children.length} games`;
 }
 
 function showPlayArea() {
@@ -223,6 +267,7 @@ function showPlayArea() {
 
 function selectBuiltInGame(game) {
   clearGameTimers();
+  platformerKeys.clear();
   activeGame = game;
   gameState = makeGameState(game);
   showPlayArea();
@@ -231,6 +276,7 @@ function selectBuiltInGame(game) {
   document.querySelectorAll('.game-choice').forEach((item) => item.classList.toggle('is-active', item.dataset.gameId === game.id));
   renderActiveGame();
   if (gameRoomChannel) publishGameState();
+  showGameWindow('play');
 }
 
 function selectExternalGame(game) {
@@ -241,9 +287,14 @@ function selectExternalGame(game) {
   gameFrame.hidden = true;
   externalGameLink.href = game.url;
   externalGameLink.textContent = `Open ${game.name} in a new tab ↗`;
+  externalGameLink.onclick = (event) => {
+    event.preventDefault();
+    window.open(game.url, '_blank', 'noopener,noreferrer');
+  };
   gameTitle.textContent = game.name;
   gameDescription.textContent = `${game.note || 'External multiplayer game'} · Opens in a separate tab.`;
   document.querySelectorAll('.game-choice').forEach((item) => item.classList.remove('is-active'));
+  showGameWindow('play');
 }
 
 function sendRoomEvent(event, payload) {
@@ -267,6 +318,7 @@ function handleRemoteSnapshot(snapshot) {
   showPlayArea();
   gameTitle.textContent = game.name;
   gameDescription.textContent = `${game.description} ${game.difficulty} difficulty · Live room connected.`;
+  showGameWindow('play');
   document.querySelectorAll('.game-choice').forEach((item) => item.classList.toggle('is-active', item.dataset.gameId === game.id));
   renderActiveGame();
 }
@@ -304,6 +356,14 @@ async function connectGameRoom(code, isHost) {
     .on('presence', { event: 'join' }, refreshRoomPlayers)
     .on('presence', { event: 'leave' }, refreshRoomPlayers)
     .on('broadcast', { event: 'game-state' }, ({ payload }) => handleRemoteSnapshot(payload))
+    .on('broadcast', { event: 'platformer-player' }, ({ payload }) => {
+      if (!activeGame || activeGame.mode !== 'platformer' || !payload?.userId || !payload?.player) return;
+      gameState.platformers ||= {};
+      gameState.platformers[payload.userId] = payload.player;
+      if (Array.isArray(payload.coins)) gameState.coins = payload.coins;
+      if (typeof payload.score === 'number') gameState.scores[payload.userId] = payload.score;
+      if (activeCanvas) drawPlatformer(activeCanvas);
+    })
     .on('broadcast', { event: 'sync-request' }, () => {
       if (roomSnapshot) sendRoomEvent('game-state', roomSnapshot);
     })
@@ -687,124 +747,259 @@ function renderBuilder(card) {
   showStatus(card, gameState.status || 'Co-op objective');
 }
 
-function renderExplore(card) {
+const platformerWorlds = {
+  neon: { sky: '#111532', far: '#252b61', ground: '#25203e', platform: '#5446b8', accent: '#50f2d2', hazard: '#ff4f9a' },
+  cave: { sky: '#171325', far: '#34284b', ground: '#30253c', platform: '#655078', accent: '#6fffe0', hazard: '#ff784e' },
+  space: { sky: '#090e24', far: '#1a2850', ground: '#1c263e', platform: '#394c76', accent: '#72d7ff', hazard: '#ff6b82' },
+  sky: { sky: '#85d5ff', far: '#b7eaff', ground: '#537a8c', platform: '#6cab72', accent: '#fff0a6', hazard: '#fa7764' },
+  maze: { sky: '#1b202c', far: '#303a4a', ground: '#394556', platform: '#60758a', accent: '#f7d66b', hazard: '#ff5364' },
+  alien: { sky: '#101c22', far: '#23433e', ground: '#284a3b', platform: '#46755a', accent: '#bdff62', hazard: '#ff61d5' },
+  moon: { sky: '#171a31', far: '#292c49', ground: '#55566c', platform: '#77798e', accent: '#e5f0ff', hazard: '#ff9c67' },
+  jungle: { sky: '#143528', far: '#24573e', ground: '#3d5634', platform: '#668747', accent: '#ffd66f', hazard: '#ff6155' }
+};
+
+function createPlatformerPlayer() {
+  return { x: 48, y: 0, vx: 0, vy: 0, onGround: false, score: 0, lives: 3, collected: [], won: false };
+}
+
+function getPlatformerLevel(game) {
+  const seed = game.id.length;
+  const platforms = [
+    { x: 0, y: 478, w: 420, h: 70 }, { x: 500, y: 430, w: 145, h: 18 },
+    { x: 710, y: 375, w: 150, h: 18 }, { x: 940, y: 430, w: 170, h: 18 },
+    { x: 1190, y: 365, w: 150, h: 18 }, { x: 1430, y: 420, w: 170, h: 18 },
+    { x: 1680, y: 350, w: 180, h: 18 }, { x: 1900, y: 478, w: 320, h: 70 }
+  ];
+  if (seed % 2) platforms.splice(3, 0, { x: 875, y: 315, w: 110, h: 16 });
+  const coins = [
+    { x: 270, y: 430 }, { x: 555, y: 385 }, { x: 770, y: 330 },
+    { x: 985, y: 385 }, { x: 1245, y: 320 }, { x: 1490, y: 375 },
+    { x: 1740, y: 305 }, { x: 2040, y: 430 }
+  ];
+  const hazards = [
+    { x: 335, y: 458, w: 36, h: 20 }, { x: 1020, y: 410, w: 40, h: 20 },
+    { x: 1510, y: 400, w: 38, h: 20 }
+  ];
+  return { width: 2220, height: 548, platforms, coins, hazards, goal: { x: 2130, y: 398, w: 28, h: 80 } };
+}
+
+function renderPlatformer(card) {
   const canvas = document.createElement('canvas');
-  canvas.className = 'game-canvas';
-  canvas.width = 800;
-  canvas.height = 450;
-  canvas.tabIndex = 0;
-  canvas.setAttribute('aria-label', `${activeGame.name} first-person runner`);
+  canvas.className = 'game-canvas platformer-canvas';
+  canvas.width = 960;
+  canvas.height = 548;
+  canvas.setAttribute('aria-label', `${activeGame.name} 2D platform game`);
   const help = document.createElement('p');
   help.className = 'game-key-help';
-  help.textContent = 'Use ← / → or A / D to dodge lanes · ↑ / W to advance · Space to jump.';
-  card.append(canvas, help);
+  help.textContent = 'Move: ←/→ or A/D · Jump: ↑, W, or Space. Touch controls are below.';
+  const controls = document.createElement('div');
+  controls.className = 'platformer-controls';
+  [['◀', 'left'], ['JUMP', 'jump'], ['▶', 'right']].forEach(([label, action]) => {
+    const button = makeButton(label, () => {}, 'platformer-control');
+    button.setAttribute('aria-label', action === 'jump' ? 'Jump' : `Move ${action}`);
+    button.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      button.setPointerCapture?.(event.pointerId);
+      platformerKeys.add(action);
+      if (action === 'jump') jumpPlatformer();
+    });
+    const stop = () => platformerKeys.delete(action);
+    button.addEventListener('pointerup', stop);
+    button.addEventListener('pointercancel', stop);
+    button.addEventListener('lostpointercapture', stop);
+    controls.append(button);
+  });
+  const restart = makeButton('Restart level', restartPlatformer, 'btn-secondary platformer-restart');
+  card.append(canvas, help, controls, restart);
   activeCanvas = canvas;
-  drawExplore(canvas);
-  showStatus(card, gameState.status || 'First-person 3D-style runner · move to race, dodge, and collect.');
+  gameState.platformers ||= {};
+  gameState.platformers[playerId()] ||= createPlatformerPlayer();
+  if (!gameState.platformers[playerId()].y) {
+    gameState.platformers[playerId()].y = 430;
+    gameState.platformers[playerId()].onGround = true;
+  }
+  platformerPreviousTime = 0;
+  drawPlatformer(canvas);
+  if (platformerFrame) cancelAnimationFrame(platformerFrame);
+  platformerFrame = requestAnimationFrame(tickPlatformer);
+  showStatus(card, 'Collect glowing orbs, avoid hazards, and touch the beacon to finish.');
 }
 
-function drawExplore(canvas) {
-  if (!canvas || !gameState || !activeGame || activeGame.mode !== 'explore') return;
+function drawPlatformer(canvas) {
+  if (!canvas || !gameState || activeGame?.mode !== 'platformer') return;
   const context = canvas.getContext('2d');
   if (!context) return;
-  const colors = {
-    neon: ['#07142d', '#16e0bd', '#f54fc7'], cave: ['#1d1029', '#55e5d3', '#fa9c68'],
-    space: ['#07091c', '#73c7ff', '#ff6b6b'], sky: ['#365b91', '#f6f1c3', '#ff9d74'],
-    maze: ['#111827', '#9ca3af', '#fbbf24'], alien: ['#07150f', '#8cff52', '#fd4bff'],
-    moon: ['#242638', '#dce6ff', '#ffca68'], jungle: ['#102417', '#a2e17b', '#f5cb68']
-  }[activeGame.theme] || ['#101629', '#8ad4ff', '#ff76c8'];
-  const [sky, edge, accent] = colors;
-  const { width, height } = canvas;
-  context.fillStyle = sky;
-  context.fillRect(0, 0, width, height);
-  const horizon = height * 0.43;
-  const gradient = context.createLinearGradient(0, horizon, 0, height);
-  gradient.addColorStop(0, '#36475c');
-  gradient.addColorStop(1, '#10131d');
-  context.fillStyle = gradient;
-  context.fillRect(0, horizon, width, height - horizon);
-  context.fillStyle = edge;
-  context.globalAlpha = 0.75;
-  context.beginPath();
-  context.moveTo(width * 0.28, horizon);
-  context.lineTo(width * 0.44, height);
-  context.lineTo(width * 0.56, height);
-  context.lineTo(width * 0.72, horizon);
-  context.closePath();
-  context.fill();
-  context.globalAlpha = 1;
-  context.strokeStyle = 'rgba(255,255,255,.28)';
-  context.lineWidth = 2;
-  for (let step = 1; step <= 7; step += 1) {
-    const ratio = step / 7;
-    const y = horizon + (height - horizon) * ratio ** 1.8;
+  const palette = platformerWorlds[activeGame.theme] || platformerWorlds.neon;
+  const level = getPlatformerLevel(activeGame);
+  const players = gameState.platformers || {};
+  const localPlayer = players[playerId()] || createPlatformerPlayer();
+  const cameraX = Math.max(0, Math.min(level.width - canvas.width, localPlayer.x - canvas.width * 0.35));
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = palette.sky;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = palette.far;
+  for (let i = 0; i < 7; i += 1) {
+    const x = (i * 190 - (cameraX * 0.2) % 190);
     context.beginPath();
-    context.moveTo(width * (0.28 - ratio * 0.16), y);
-    context.lineTo(width * (0.72 + ratio * 0.16), y);
-    context.stroke();
+    context.arc(x + 80, 380, 120 + (i % 3) * 20, Math.PI, 0);
+    context.fill();
   }
-  for (let lane = 0; lane < 4; lane += 1) {
-    const ratio = lane / 3;
-    context.beginPath();
-    context.moveTo(width * (0.5 + (ratio - 0.5) * 0.18), horizon);
-    context.lineTo(width * ratio, height);
-    context.stroke();
-  }
-  const runners = gameState.racers || {};
-  const me = runners[playerId()] || { lane: 1, distance: 0 };
-  for (let depth = 1; depth <= 5; depth += 1) {
-    const obstacleDistance = Math.floor(me.distance / 8) * 8 + depth * 8;
-    const obstacleLane = ((obstacleDistance * 7 + activeGame.id.length) % 3) - 1;
-    const perspective = 1 - depth / 7;
-    const x = width * (0.5 + obstacleLane * 0.15 * perspective);
-    const y = horizon + (height - horizon) * perspective ** 1.8;
-    const size = 12 + perspective * 70;
-    context.fillStyle = depth % 3 === 0 ? accent : edge;
-    context.fillRect(x - size / 2, y - size / 2, size, size * 0.65);
-    context.strokeStyle = '#fff';
-    context.strokeRect(x - size / 2, y - size / 2, size, size * 0.65);
-  }
-  context.fillStyle = '#fff';
-  context.font = 'bold 20px sans-serif';
-  context.fillText(`${activeGame.name} · ${Math.floor(me.distance)} m`, 18, 30);
-  context.font = '14px sans-serif';
-  context.fillText(`Lane ${me.lane + 2} · Score ${gameState.scores[playerId()] || 0}`, 18, 54);
-  const visiblePlayers = Object.entries(runners).filter(([id]) => id !== playerId());
-  visiblePlayers.forEach(([id, runner], index) => {
-    context.fillStyle = accent;
-    context.fillText(`${getPlayerName(id)} · ${Math.floor(runner.distance)} m`, 18, height - 20 - index * 20);
+  context.save();
+  context.translate(-cameraX, 0);
+  level.platforms.forEach((platform) => {
+    context.fillStyle = palette.ground;
+    context.fillRect(platform.x, platform.y, platform.w, platform.h);
+    context.fillStyle = palette.platform;
+    context.fillRect(platform.x, platform.y, platform.w, Math.min(9, platform.h));
   });
+  (gameState.coins || []).forEach((coin) => {
+    if (coin.collected) return;
+    context.fillStyle = palette.accent;
+    context.beginPath();
+    context.arc(coin.x, coin.y, 10, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = '#fff';
+    context.lineWidth = 2;
+    context.stroke();
+  });
+  level.hazards.forEach((hazard) => {
+    context.fillStyle = palette.hazard;
+    context.beginPath();
+    context.moveTo(hazard.x, hazard.y + hazard.h);
+    context.lineTo(hazard.x + hazard.w / 2, hazard.y);
+    context.lineTo(hazard.x + hazard.w, hazard.y + hazard.h);
+    context.closePath();
+    context.fill();
+  });
+  context.fillStyle = palette.accent;
+  context.fillRect(level.goal.x, level.goal.y, level.goal.w, level.goal.h);
   context.fillStyle = '#fff';
-  context.beginPath();
-  context.moveTo(width / 2, height - 22);
-  context.lineTo(width / 2 - 14, height - 4);
-  context.lineTo(width / 2 + 14, height - 4);
-  context.closePath();
-  context.fill();
+  context.font = 'bold 15px sans-serif';
+  context.fillText('GOAL', level.goal.x - 3, level.goal.y - 9);
+  Object.entries(players).forEach(([id, player], index) => {
+    context.fillStyle = id === playerId() ? '#ffdf66' : '#ff78b4';
+    context.fillRect(player.x, player.y, 28, 40);
+    context.fillStyle = '#17212b';
+    context.fillRect(player.x + 6, player.y + 9, 5, 5);
+    context.fillRect(player.x + 18, player.y + 9, 5, 5);
+    context.fillStyle = '#fff';
+    context.font = '12px sans-serif';
+    context.fillText(id === playerId() ? 'YOU' : getPlayerName(id), player.x - 8, player.y - 6 - index * 12);
+  });
+  context.restore();
+  context.fillStyle = '#fff';
+  context.font = 'bold 18px sans-serif';
+  context.fillText(`${activeGame.name}  ·  Orbs ${localPlayer.score}/${level.coins.length}  ·  Lives ${localPlayer.lives}`, 16, 28);
+  if (localPlayer.won) {
+    context.fillStyle = 'rgba(0,0,0,.65)';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = '#fff';
+    context.textAlign = 'center';
+    context.font = 'bold 36px sans-serif';
+    context.fillText('LEVEL COMPLETE!', canvas.width / 2, canvas.height / 2);
+    context.font = '18px sans-serif';
+    context.fillText(`You collected ${localPlayer.score} orbs. Press Restart to play again.`, canvas.width / 2, canvas.height / 2 + 34);
+    context.textAlign = 'start';
+  } else if (localPlayer.lives <= 0) {
+    context.fillStyle = 'rgba(0,0,0,.68)';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = '#fff';
+    context.textAlign = 'center';
+    context.font = 'bold 36px sans-serif';
+    context.fillText('OUT OF LIVES', canvas.width / 2, canvas.height / 2);
+    context.font = '18px sans-serif';
+    context.fillText('Press Restart level to try again.', canvas.width / 2, canvas.height / 2 + 34);
+    context.textAlign = 'start';
+  }
 }
 
-function moveExplore(key) {
-  if (!activeGame || activeGame.mode !== 'explore' || !gameState) return;
-  const runners = gameState.racers || (gameState.racers = {});
-  const runner = runners[playerId()] || (runners[playerId()] = { lane: 0, distance: 0, energy: 3 });
-  if (key === 'ArrowLeft' || key.toLowerCase() === 'a') runner.lane = Math.max(-1, runner.lane - 1);
-  else if (key === 'ArrowRight' || key.toLowerCase() === 'd') runner.lane = Math.min(1, runner.lane + 1);
-  else if (key === 'ArrowUp' || key.toLowerCase() === 'w' || key === ' ') {
-    runner.distance += key === ' ' ? 3 : 5;
-    const hazardLane = (Math.floor(runner.distance / 10) * 7 + activeGame.id.length) % 3 - 1;
-    if (Math.floor(runner.distance) % 10 < 6 && runner.lane === hazardLane) {
-      runner.energy = Math.max(0, runner.energy - 1);
-      runner.distance = Math.max(0, runner.distance - 3);
-      gameState.status = runner.energy ? 'Bump! Change lanes before the next gate.' : `${getPlayerName(playerId())} is out of energy—keep going carefully!`;
-    } else {
-      gameState.scores[playerId()] = Math.floor(runner.distance / 10);
-      gameState.status = `${getPlayerName(playerId())} is at ${Math.floor(runner.distance)} m · ${runner.energy} energy`;
+function tickPlatformer(timestamp) {
+  if (activeGame?.mode !== 'platformer' || gamePlayWindow.hidden || !activeCanvas) {
+    platformerFrame = null;
+    return;
+  }
+  const dt = platformerPreviousTime ? Math.min((timestamp - platformerPreviousTime) / 1000, 0.04) : 0;
+  platformerPreviousTime = timestamp;
+  updatePlatformer(dt);
+  drawPlatformer(activeCanvas);
+  platformerFrame = requestAnimationFrame(tickPlatformer);
+}
+
+function updatePlatformer(dt) {
+  const level = getPlatformerLevel(activeGame);
+  const players = gameState.platformers || (gameState.platformers = {});
+  const player = players[playerId()] || (players[playerId()] = createPlatformerPlayer());
+  if (player.won || player.lives <= 0) return;
+  const previousY = player.y;
+  const moveLeft = platformerKeys.has('left') || platformerKeys.has('arrowleft') || platformerKeys.has('a');
+  const moveRight = platformerKeys.has('right') || platformerKeys.has('arrowright') || platformerKeys.has('d');
+  player.vx = (moveRight ? 230 : 0) - (moveLeft ? 230 : 0);
+  player.x = Math.max(0, Math.min(level.width - 28, player.x + player.vx * dt));
+  player.vy = Math.min(760, player.vy + 1450 * dt);
+  player.y += player.vy * dt;
+  player.onGround = false;
+  level.platforms.forEach((platform) => {
+    const overlapsX = player.x + 28 > platform.x && player.x < platform.x + platform.w;
+    const crossedTop = previousY + 40 <= platform.y && player.y + 40 >= platform.y;
+    if (overlapsX && crossedTop && player.vy >= 0) {
+      player.y = platform.y - 40;
+      player.vy = 0;
+      player.onGround = true;
     }
-  } else return;
-  publishGameState();
-  if (activeCanvas) drawExplore(activeCanvas);
-  const status = builtInGame.querySelector('.mini-game-status');
-  if (status) status.textContent = gameState.status;
+  });
+  if (player.y > level.height + 80) resetPlatformerPlayer(player, true);
+  (gameState.coins || []).forEach((coin) => {
+    if (coin.collected) return;
+    if (player.x + 28 > coin.x - 10 && player.x < coin.x + 10 && player.y + 40 > coin.y - 10 && player.y < coin.y + 10) {
+      coin.collected = true;
+      player.score += 1;
+      gameState.scores[playerId()] = player.score;
+    }
+  });
+  level.hazards.forEach((hazard) => {
+    if (player.x + 28 > hazard.x && player.x < hazard.x + hazard.w && player.y + 40 > hazard.y && player.y + 40 < hazard.y + hazard.h + 18) {
+      resetPlatformerPlayer(player, true);
+    }
+  });
+  if (player.x + 28 > level.goal.x && player.y + 40 > level.goal.y - 30) {
+    player.won = true;
+    gameState.status = `${getPlayerName(playerId())} completed ${activeGame.name}!`;
+  }
+  if (gameRoomChannel && (moveLeft || moveRight || !player.onGround) && timestamp - platformerLastBroadcast > 100) {
+    platformerLastBroadcast = timestamp;
+    gameRoomChannel.send({
+      type: 'broadcast',
+      event: 'platformer-player',
+      payload: { userId: playerId(), player, coins: gameState.coins, score: player.score }
+    });
+  }
+}
+
+function jumpPlatformer() {
+  const player = gameState?.platformers?.[playerId()];
+  if (activeGame?.mode === 'platformer' && player?.onGround && !player.won && player.lives > 0) {
+    player.vy = -560;
+    player.onGround = false;
+  }
+}
+
+function resetPlatformerPlayer(player, loseLife = false) {
+  if (loseLife) player.lives = Math.max(0, player.lives - 1);
+  player.x = 48;
+  player.y = 438;
+  player.vx = 0;
+  player.vy = 0;
+  player.onGround = true;
+  if (player.lives <= 0) gameState.status = 'Out of lives! Press Restart to try again.';
+}
+
+function restartPlatformer() {
+  const level = getPlatformerLevel(activeGame);
+  gameState.platformers[playerId()] = createPlatformerPlayer();
+  gameState.platformers[playerId()].y = 438;
+  gameState.coins = level.coins.map((coin) => ({ ...coin, collected: false }));
+  gameState.status = 'Level restarted.';
+  sendState();
 }
 
 function renderActiveGame() {
@@ -815,7 +1010,7 @@ function renderActiveGame() {
   const title = document.createElement('h3');
   title.textContent = activeGame.name;
   const difficulty = document.createElement('p');
-  difficulty.textContent = `${activeGame.difficulty} · ${roomPlayerList.length > 1 ? `${roomPlayerList.length} players connected` : 'solo or room play'}${activeGame.immersive ? ' · immersive 3D-style view' : ''}`;
+  difficulty.textContent = `${activeGame.difficulty} · ${roomPlayerList.length > 1 ? `${roomPlayerList.length} players connected` : 'solo or room play'}${activeGame.mode === 'platformer' ? ' · 2D platformer' : ''}`;
   card.append(title, difficulty);
   if (activeGame.mode === 'board') renderBoard(card);
   else if (activeGame.mode === 'quiz') renderQuiz(card);
@@ -827,7 +1022,7 @@ function renderActiveGame() {
   else if (activeGame.mode === 'rps') renderRps(card);
   else if (activeGame.mode === 'guess' || activeGame.mode === 'code') renderGuess(card);
   else if (activeGame.mode === 'builder') renderBuilder(card);
-  else if (activeGame.mode === 'explore') renderExplore(card);
+  else if (activeGame.mode === 'platformer') renderPlatformer(card);
   addScores(card);
   builtInGame.append(card);
 }
@@ -837,6 +1032,9 @@ function clearGameTimers() {
   if (memoryTimer) clearTimeout(memoryTimer);
   reactionTimer = null;
   memoryTimer = null;
+  platformerKeys.clear();
+  if (platformerFrame) cancelAnimationFrame(platformerFrame);
+  platformerFrame = null;
 }
 
 function updateFullscreenButton() {
@@ -872,17 +1070,37 @@ document.getElementById('copyGameRoomCodeBtn').addEventListener('click', async (
     setText(gameRoomStatus, 'Copy was blocked—select the code and copy it manually.');
   }
 });
-document.getElementById('gameSearchInput').addEventListener('input', (event) => renderGameCatalog(event.target.value));
+gameSearchInput.addEventListener('input', () => {
+  renderGameCatalog(gameSearchInput.value);
+  filterExternalGames(gameSearchInput.value);
+});
+document.getElementById('clearGameSearchBtn').addEventListener('click', () => {
+  gameSearchInput.value = '';
+  renderGameCatalog();
+  filterExternalGames();
+  gameSearchInput.focus();
+});
+document.getElementById('chooseGamesBtn').addEventListener('click', () => showGameWindow('chooser'));
 
 document.addEventListener('keydown', (event) => {
-  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
-  if (activeGame?.mode === 'explore' && !document.getElementById('gamesView').hidden) {
-    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', ' '].includes(event.key) || ['a', 'd', 'w'].includes(event.key.toLowerCase())) {
-      event.preventDefault();
-      moveExplore(event.key);
-    }
-  }
+  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return;
+  if (!activeGame || activeGame.mode !== 'platformer' || gamePlayWindow.hidden || document.getElementById('gamesView').hidden) return;
+  const key = event.key.toLowerCase();
+  const action = ['arrowleft', 'a'].includes(key) ? 'left'
+    : ['arrowright', 'd'].includes(key) ? 'right'
+      : ['arrowup', 'w', ' '].includes(key) ? 'jump' : null;
+  if (!action) return;
+  event.preventDefault();
+  if (action === 'jump') jumpPlatformer();
+  else platformerKeys.add(action);
 });
+
+document.addEventListener('keyup', (event) => {
+  const key = event.key.toLowerCase();
+  if (['arrowleft', 'a'].includes(key)) platformerKeys.delete('left');
+  if (['arrowright', 'd'].includes(key)) platformerKeys.delete('right');
+});
+window.addEventListener('blur', () => platformerKeys.clear());
 
 fullscreenGameBtn.addEventListener('click', async () => {
   try {
@@ -896,11 +1114,13 @@ fullscreenGameBtn.addEventListener('click', async () => {
 document.addEventListener('fullscreenchange', updateFullscreenButton);
 
 window.closeActiveGame = () => {
+  platformerKeys.clear();
   if (document.fullscreenElement === gamePlayArea) document.exitFullscreen().catch(() => {});
 };
 
 externalGames.forEach(appendExternalGame);
 renderGameCatalog();
+filterExternalGames();
 
 gameAdminForm.addEventListener('submit', async (event) => {
   event.preventDefault();

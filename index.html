@@ -216,13 +216,10 @@
         <section id="gamesView" class="panel games-panel" aria-labelledby="games-heading" hidden>
             <div class="panel-header">
                 <h1 id="games-heading">Games</h1>
-                <div class="games-header-actions">
-                    <span id="gameTitle" class="chat-status">Select a game</span>
-                    <button type="button" id="fullscreenGameBtn" class="icon-button" title="Enter fullscreen" aria-label="Enter fullscreen">⛶</button>
-                </div>
+                <span id="gamesHeaderStatus" class="chat-status">Choose a game to play</span>
             </div>
             <div class="games-body">
-                <aside class="games-sidebar">
+                <section id="gameChooserWindow" class="game-chooser-window" aria-labelledby="game-chooser-heading">
                     <section class="game-room-panel" aria-labelledby="game-room-heading">
                         <h2 id="game-room-heading">Play together</h2>
                         <p id="gameRoomStatus" class="game-room-status" aria-live="polite">Create a room or join with a code. Rooms are live while players stay connected.</p>
@@ -242,37 +239,55 @@
                         </div>
                         <p id="gameRoomPlayers" class="game-room-players" aria-live="polite">No room connected</p>
                     </section>
-                    <label class="sr-only" for="gameSearchInput">Search built-in games</label>
-                    <input id="gameSearchInput" class="game-search" type="search" placeholder="Search 22 games..." />
-                    <div id="gamesList" class="games-list" aria-label="Built-in games"></div>
+                    <section class="game-catalog-panel" aria-labelledby="game-catalog-title">
+                        <div class="game-catalog-heading">
+                            <div>
+                                <h2 id="game-catalog-title">Choose a game</h2>
+                                <p>Search by title, game type, or difficulty.</p>
+                            </div>
+                            <span id="gameSearchCount" class="game-search-count" aria-live="polite">26 built-in games</span>
+                        </div>
+                        <div class="game-search-row">
+                            <label class="sr-only" for="gameSearchInput">Search all games</label>
+                            <input id="gameSearchInput" class="game-search" type="search" placeholder="Try “trivia”, “easy”, or “platformer”" autocomplete="off" />
+                            <button type="button" id="clearGameSearchBtn" class="btn-secondary">Clear</button>
+                        </div>
+                        <div id="gamesList" class="games-list" aria-label="Built-in games"></div>
+                    </section>
                     <section class="external-games-panel" aria-labelledby="external-games-heading">
-                        <h2 id="external-games-heading">External multiplayer games</h2>
+                        <div class="external-games-heading">
+                            <h2 id="external-games-heading">External multiplayer games</h2>
+                            <span id="externalGameCount" class="game-search-count">10 games</span>
+                        </div>
                         <div id="externalGamesList" class="external-games-list"></div>
                     </section>
-                </aside>
-                <div class="game-play-area">
+                    <form id="gameAdminForm" class="game-admin" hidden>
+                        <h2>Add external game</h2>
+                        <input id="gameNameInput" type="text" maxlength="100" placeholder="Game name" required />
+                        <input id="gameUrlInput" type="url" placeholder="Game URL (https://...)" required />
+                        <button type="submit"><span class="btn-icon icon-save"></span>Add Game</button>
+                        <p id="gameAdminStatus" class="game-admin-status" aria-live="polite"></p>
+                    </form>
+                </section>
+                <section id="gamePlayWindow" class="game-play-window" aria-label="Game play area" hidden>
                     <div class="game-play-header">
-                        <div>
+                        <button type="button" id="chooseGamesBtn" class="btn-secondary game-back-button">← Choose another game</button>
+                        <div class="game-play-heading">
                             <h2 id="gameTitle">Choose a game</h2>
-                            <p id="gameDescription">Pick a built-in game or open an external game in a new tab.</p>
+                            <p id="gameDescription">Select a game from the chooser window.</p>
                         </div>
                         <button type="button" id="fullscreenGameBtn" class="icon-button" title="Enter fullscreen" aria-label="Enter fullscreen">⛶</button>
                     </div>
-                    <div id="builtInGame" class="built-in-game">
-                        <div id="gameEmpty" class="game-empty">Create or join a room to play live with friends, or start a game solo.</div>
+                    <div class="game-play-area">
+                        <div id="builtInGame" class="built-in-game">
+                            <div id="gameEmpty" class="game-empty">Create or join a room to play live with friends, or start a game solo.</div>
+                        </div>
+                        <div class="game-frame-wrap" hidden>
+                            <a id="externalGameLink" target="_blank" rel="noopener noreferrer"></a>
+                            <iframe id="gameFrame" title="Embedded game" allowfullscreen hidden></iframe>
+                        </div>
                     </div>
-                    <div class="game-frame-wrap" hidden>
-                        <a id="externalGameLink" target="_blank" rel="noopener noreferrer"></a>
-                        <iframe id="gameFrame" title="Embedded game" allowfullscreen hidden></iframe>
-                    </div>
-                </div>
-                <form id="gameAdminForm" class="game-admin" hidden>
-                    <h2>Add game</h2>
-                    <input id="gameNameInput" type="text" maxlength="100" placeholder="Game name" required />
-                    <input id="gameUrlInput" type="url" placeholder="Game URL (https://...)" required />
-                    <button type="submit"><span class="btn-icon icon-save"></span>Add Game</button>
-                    <p id="gameAdminStatus" class="game-admin-status" aria-live="polite"></p>
-                </form>
+                </section>
             </div>
         </section>
         <section id="musicView" class="panel music-panel" aria-labelledby="music-heading" hidden>
