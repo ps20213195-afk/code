@@ -186,7 +186,7 @@ function applyGuestMode() {
   document.getElementById('guestModeButton').textContent = 'Exit guest mode';
   document.getElementById('guestModeButton').setAttribute('aria-label', 'Exit guest mode and return to sign in');
   document.getElementById('addPasswordContainer').hidden = true;
-  ['editUsername', 'editFlair', 'editFlairColor', 'updateProfileBtn', 'refreshBtn', 'deleteAccountBtn', 'signOutBtn']
+  ['editUsername', 'editFlair', 'editAvatarUrl', 'editFlairColor', 'updateProfileBtn', 'refreshBtn', 'deleteAccountBtn', 'signOutBtn']
     .forEach((id) => {
       const element = document.getElementById(id);
       if (element) element.hidden = true;
@@ -309,21 +309,63 @@ function getProfileUsername(userId, username) {
     : getDefaultUsername(userId);
 }
 
+function getSafeAvatarUrl(value) {
+  if (typeof value !== 'string' || !value.trim() || value.length > 2048) return '';
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'https:' ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
+function updateAvatarImage(image, value) {
+  const url = getSafeAvatarUrl(value);
+  image.hidden = !url;
+  if (url) image.src = url;
+  else image.removeAttribute('src');
+}
+
+function updateAvatarFallback(container, username) {
+  const fallback = container.querySelector('.avatar-fallback');
+  const name = String(username || '?').trim();
+  fallback.textContent = name ? name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() : '?';
+}
+
+document.getElementById('editAvatarUrl').addEventListener('input', () => {
+  updateAvatarImage(document.getElementById('avatarPreviewImage'), document.getElementById('editAvatarUrl').value);
+});
+document.getElementById('avatarPreviewImage').addEventListener('error', (event) => {
+  event.currentTarget.hidden = true;
+});
+document.getElementById('displayAvatar').addEventListener('error', (event) => {
+  event.currentTarget.hidden = true;
+});
+
 async function fetchProfile(userId) {
   printLog("Fetching profile row from SQL table...");
   const { data, error } = await _supabase
     .from('profiles')
-    .select('username, flair, flair_color')
+    .select('username, flair, flair_color, avatar_url')
     .eq('id', userId)
     .maybeSingle();
 
   if (error) {
     printLog("❌ Database Query Error: " + error.message);
+    document.getElementById('editAvatarUrl').value = '';
+    updateAvatarImage(document.getElementById('displayAvatar'), '');
+    updateAvatarImage(document.getElementById('avatarPreviewImage'), '');
+    if (/avatar_url|column/i.test(error.message || '')) showPopup('Run the updated chat-rls.sql in Supabase to enable profile pictures.', 'warning');
   } else if (!data) {
     printLog("⚠️ Connected, but profile row missing.");
     const defaultUsername = getDefaultUsername(userId);
     document.getElementById('displayUsername').textContent = defaultUsername;
     document.getElementById('editUsername').value = defaultUsername;
+    document.getElementById('editAvatarUrl').value = '';
+    updateAvatarFallback(document.getElementById('profileAvatar'), defaultUsername);
+    updateAvatarFallback(document.getElementById('avatarPreview'), defaultUsername);
+    updateAvatarImage(document.getElementById('displayAvatar'), '');
+    updateAvatarImage(document.getElementById('avatarPreviewImage'), '');
     showPopup("Could not load some data", 'warning');
   } else {
     const username = getProfileUsername(userId, data.username);
@@ -333,6 +375,12 @@ async function fetchProfile(userId) {
     
     document.getElementById('editUsername').value = username;
     document.getElementById('editFlair').value = data.flair || '';
+    const avatarUrl = getSafeAvatarUrl(data.avatar_url);
+    document.getElementById('editAvatarUrl').value = avatarUrl;
+    updateAvatarFallback(document.getElementById('profileAvatar'), username);
+    updateAvatarFallback(document.getElementById('avatarPreview'), username);
+    updateAvatarImage(document.getElementById('displayAvatar'), avatarUrl);
+    updateAvatarImage(document.getElementById('avatarPreviewImage'), avatarUrl);
     if (!isValidFlairColor(data.flair_color)) {
       printLog('⚠️ Profile flair_color was missing or invalid; using black.');
     }
@@ -355,6 +403,12 @@ document.getElementById('updateProfileBtn').addEventListener('click', async () =
   const newUsername = document.getElementById('editUsername').value;
   const newFlair = document.getElementById('editFlair').value;
   const newFlairColor = document.getElementById('editFlairColor').value || '#000000';
+  const avatarInput = document.getElementById('editAvatarUrl').value.trim();
+  const newAvatarUrl = getSafeAvatarUrl(avatarInput);
+  if (avatarInput && !newAvatarUrl) {
+    showPopup('Profile pictures must use a valid HTTPS image URL.', 'warning');
+    return;
+  }
 
   printLog("Updating profile in database...");
   showPopup("Updating profile...", 'info');
@@ -364,7 +418,8 @@ document.getElementById('updateProfileBtn').addEventListener('click', async () =
     .update({
       username: newUsername,
       flair: newFlair,
-      flair_color: newFlairColor
+      flair_color: newFlairColor,
+      avatar_url: newAvatarUrl || null
     })
     .eq('id', user.id);
 

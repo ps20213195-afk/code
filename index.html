@@ -12,7 +12,7 @@
 <body>
     <section id="authSection" class="auth-page" aria-labelledby="authSectionHeader">
         <div class="box">
-            <h1 id="authSectionHeader">Sign in to Skybase</h1>
+            <h1 id="authSectionHeader">Sign in to Skybase-- The best tool for math learning.</h1>
             <p class="auth-description">Continue securely with your Google account.</p>
             <button id="googleSignInBtn" class="google-login-button"><span class="btn-icon icon-google"></span>Continue with Google</button>
         </div>
@@ -30,6 +30,10 @@
         <button type="button" class="view-tab" data-view="games" aria-selected="false">
             <span class="view-tab-icon icon-games" aria-hidden="true"></span>
             <span>Games</span>
+        </button>
+        <button type="button" class="view-tab" data-view="shop" aria-selected="false">
+            <span class="view-tab-icon icon-shop" aria-hidden="true"></span>
+            <span>Shop</span>
         </button>
         <button type="button" class="view-tab" data-view="achievements" aria-selected="false">
             <span class="view-tab-icon icon-achievements" aria-hidden="true"></span>
@@ -184,6 +188,10 @@
                     <div id="profileSection" class="box" hidden>
                         <p id="guestModeNotice" class="guest-mode-notice" hidden>Guest preview: changes stay in this browser and are not shared.</p>
                         <div class="user-header">
+                            <div class="profile-avatar" id="profileAvatar" aria-label="Profile picture">
+                                <span class="avatar-fallback" aria-hidden="true">?</span>
+                                <img id="displayAvatar" alt="Profile picture" hidden />
+                            </div>
                             <span id="authBadge" class="btn-icon"></span>
                             <p><span id="displayUsername" class="user-stuffs">Loading...</span></p>
                         </div>
@@ -196,6 +204,15 @@
                         <hr />
                         <input type="text" id="editUsername" placeholder="New Username" />
                         <input type="text" id="editFlair" placeholder="New Flair" />
+                        <label class="flair-color-control" for="editAvatarUrl">Profile picture URL (HTTPS image)</label>
+                        <input type="url" id="editAvatarUrl" maxlength="2048" placeholder="https://example.com/my-picture.png" autocomplete="url" />
+                        <div class="avatar-preview-row">
+                            <span>Preview</span>
+                            <div class="profile-avatar avatar-preview" id="avatarPreview" aria-label="Profile picture preview">
+                                <span class="avatar-fallback" aria-hidden="true">?</span>
+                                <img id="avatarPreviewImage" alt="Profile picture preview" hidden />
+                            </div>
+                        </div>
                         <label class="flair-color-control" for="editFlairColor">Flair Color</label>
                         <input type="color" id="editFlairColor" value="#000000" title="Choose flair color" />
                         <button id="updateProfileBtn"><span class="btn-icon icon-save"></span>Save Profile Changes</button>
@@ -288,6 +305,16 @@
                         </div>
                     </div>
                 </section>
+            </div>
+        </section>
+        <section id="shopView" class="panel shop-panel" aria-labelledby="shop-heading" hidden>
+            <div class="panel-header">
+                <h1 id="shop-heading">Shop</h1>
+                <div id="shopPointBalance" class="score-tracker" aria-live="polite">25 spendable points</div>
+            </div>
+            <div class="panel-body shop-body">
+                <p id="shopSummary" class="shop-summary" aria-live="polite">Earn points in platformers and spend them on gameplay upgrades.</p>
+                <div id="shopCatalog" class="shop-catalog" aria-label="Shop upgrades"></div>
             </div>
         </section>
         <section id="musicView" class="panel music-panel" aria-labelledby="music-heading" hidden>
@@ -401,6 +428,7 @@
     <script src="./js/chat.js"></script>
     <script src="./js/cloak.js"></script>
     <script src="./js/settings.js"></script>
+    <script src="./js/shop.js"></script>
     <script src="./js/games.js"></script>
     <script src="./js/music.js?v=20260916-2"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>

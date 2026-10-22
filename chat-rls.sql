@@ -1,5 +1,6 @@
 -- Run this in the Supabase SQL editor for the public.chat and profiles tables.
 alter table public.profiles enable row level security;
+alter table public.profiles add column if not exists avatar_url text;
 
 drop policy if exists "Authenticated users can read chat profiles" on public.profiles;
 create policy "Authenticated users can read chat profiles"

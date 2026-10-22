@@ -19,6 +19,7 @@ const chatElements = {
   chatView: document.getElementById('chatView'),
   settingsView: document.getElementById('settingsView'),
   gamesView: document.getElementById('gamesView'),
+  shopView: document.getElementById('shopView'),
   musicView: document.getElementById('musicView'),
   blogView: document.getElementById('blogView'),
   extensionsView: document.getElementById('extensionsView'),
@@ -66,6 +67,37 @@ function getChatUsername(userId, username) {
   return userId ? `User ${userId.slice(0, 6)}` : 'User';
 }
 
+function getChatAvatarUrl(value) {
+  if (typeof value !== 'string' || !value.trim() || value.length > 2048) return '';
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'https:' ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
+function makeChatAvatar(url, username, className = 'chat-avatar') {
+  const avatar = document.createElement('span');
+  avatar.className = className;
+  avatar.setAttribute('aria-hidden', 'true');
+  const fallback = document.createElement('span');
+  fallback.className = 'avatar-fallback';
+  fallback.textContent = String(username || '?').trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '?';
+  avatar.append(fallback);
+  const safeUrl = getChatAvatarUrl(url);
+  if (safeUrl) {
+    const image = document.createElement('img');
+    image.src = safeUrl;
+    image.alt = '';
+    image.loading = 'lazy';
+    image.referrerPolicy = 'no-referrer';
+    image.addEventListener('error', () => image.remove());
+    avatar.append(image);
+  }
+  return avatar;
+}
+
 function notifyNewMessages(rows) {
   rows
     .filter((row) => row.uuid !== chatState.currentUserId)
@@ -96,9 +128,11 @@ function renderChat() {
     const meta = document.createElement('p');
     meta.className = 'chat-message-meta';
     const profile = chatState.profiles.get(row.uuid);
+    const displayName = getChatUsername(row.uuid, profile?.username);
+    meta.append(makeChatAvatar(profile?.avatar_url, displayName));
     const username = document.createElement('span');
     username.className = 'chat-username';
-    username.textContent = getChatUsername(row.uuid, profile?.username);
+    username.textContent = displayName;
     meta.append(username);
     if (profile?.flair) {
       const separator = document.createTextNode(' | ');
@@ -173,14 +207,14 @@ async function updateOnlineCount() {
     try {
       const { data } = await _supabase
         .from('profiles')
-        .select('id, username')
+        .select('id, username, avatar_url')
         .in('id', missingProfiles);
-      (data || []).forEach((profile) => onlineProfileCache.set(profile.id, profile.username));
+      (data || []).forEach((profile) => onlineProfileCache.set(profile.id, profile));
     } catch (error) {
       console.warn('Could not load names for online chat members.', error);
     }
     missingProfiles.forEach((userId) => {
-      if (!onlineProfileCache.has(userId)) onlineProfileCache.set(userId, '');
+      if (!onlineProfileCache.has(userId)) onlineProfileCache.set(userId, { username: '', avatar_url: '' });
     });
   }
 
@@ -189,9 +223,13 @@ async function updateOnlineCount() {
   onlineUsers.forEach((presenceName, userId) => {
     const chip = document.createElement('span');
     chip.className = 'chat-online-user';
-    const username = getChatUsername(userId, presenceName || onlineProfileCache.get(userId));
+    const profile = onlineProfileCache.get(userId) || {};
+    const username = getChatUsername(userId, presenceName || profile.username);
     chip.title = username;
-    chip.textContent = username;
+    chip.append(makeChatAvatar(profile.avatar_url, username, 'chat-avatar chat-avatar-small'));
+    const label = document.createElement('span');
+    label.textContent = username;
+    chip.append(label);
     chatElements.onlineUsers.append(chip);
   });
 }
@@ -225,9 +263,11 @@ async function connectRoomPresence(roomId, userId) {
       if (status === 'SUBSCRIBED') {
         const profileName = document.getElementById('displayUsername')?.textContent;
         const username = profileName && profileName !== 'Loading...' ? profileName : '';
+        const avatarImage = document.getElementById('displayAvatar');
         await chatState.presenceChannel.track({
           user_id: userId,
           username,
+          avatar_url: avatarImage && !avatarImage.hidden ? avatarImage.getAttribute('src') || '' : '',
           online_at: new Date().toISOString()
         });
         updateOnlineCount();
@@ -279,7 +319,7 @@ async function loadChat() {
     if (uuids.length) {
       const { data: profiles, error: profilesError } = await _supabase
         .from('profiles')
-        .select('id, username, flair, flair_color')
+        .select('id, username, flair, flair_color, avatar_url')
         .in('id', uuids);
       if (profilesError) {
         console.warn('Could not load chat player profiles. Check the profiles SELECT policy in chat-rls.sql.', profilesError);
@@ -314,6 +354,7 @@ chatElements.tabs.forEach((tab) => {
     const isChat = tab.dataset.view === 'chat';
     const isSettings = tab.dataset.view === 'settings';
     const isGames = tab.dataset.view === 'games';
+    const isShop = tab.dataset.view === 'shop';
     const isMusic = tab.dataset.view === 'music';
     const isBlog = tab.dataset.view === 'blog';
     const isExtensions = tab.dataset.view === 'extensions';
@@ -321,16 +362,17 @@ chatElements.tabs.forEach((tab) => {
       : isChat ? chatElements.chatView
       : isSettings ? chatElements.settingsView
         : isGames ? chatElements.gamesView
-        : isMusic ? chatElements.musicView
-          : isBlog ? chatElements.blogView
-            : isExtensions ? chatElements.extensionsView
-        : chatElements.achievementsView;
+          : isShop ? chatElements.shopView
+            : isMusic ? chatElements.musicView
+              : isBlog ? chatElements.blogView
+                : isExtensions ? chatElements.extensionsView
+                  : chatElements.achievementsView;
     chatElements.tabs.forEach((item) => {
       const active = item === tab;
       item.classList.toggle('is-active', active);
       item.setAttribute('aria-selected', String(active));
     });
-    [chatElements.homeView, chatElements.achievementsView, chatElements.chatView, chatElements.settingsView, chatElements.gamesView, chatElements.musicView, chatElements.blogView, chatElements.extensionsView]
+    [chatElements.homeView, chatElements.achievementsView, chatElements.chatView, chatElements.settingsView, chatElements.gamesView, chatElements.shopView, chatElements.musicView, chatElements.blogView, chatElements.extensionsView]
       .forEach((view) => {
         view.hidden = view !== selectedView;
       });

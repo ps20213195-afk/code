@@ -15,14 +15,14 @@ const builtInGames = [
   { id: 'number-hunter', name: 'Number Hunter', mode: 'guess', difficulty: 'Medium', description: 'Guess the hidden number with hot/cold clues.' },
   { id: 'codebreaker', name: 'Codebreaker', mode: 'code', difficulty: 'Hard', description: 'Crack the four-digit code with feedback clues.' },
   { id: 'co-op-builder', name: 'Co-op Builder', mode: 'builder', difficulty: 'Easy', description: 'Work together to gather materials and build a beacon.' },
-  { id: 'neon-platformer', name: 'Neon Rooftops', mode: 'platformer', theme: 'neon', difficulty: 'Medium', description: 'Jump between glowing rooftops and collect energy orbs.' },
-  { id: 'crystal-platformer', name: 'Crystal Caverns', mode: 'platformer', theme: 'cave', difficulty: 'Easy', description: 'Explore a crystal cave, leap over gaps, and gather gems.' },
-  { id: 'starship-platformer', name: 'Starship Scramble', mode: 'platformer', theme: 'space', difficulty: 'Hard', description: 'Hop across a starship wreck and reach the escape pod.' },
-  { id: 'sky-island-platformer', name: 'Sky Island Hop', mode: 'platformer', theme: 'sky', difficulty: 'Easy', description: 'Cross floating islands above the clouds.' },
-  { id: 'pixel-maze-platformer', name: 'Pixel Maze Jumper', mode: 'platformer', theme: 'maze', difficulty: 'Hard', description: 'Climb a tricky pixel maze and find the exit portal.' },
-  { id: 'alien-platformer', name: 'Alien Planet Rescue', mode: 'platformer', theme: 'alien', difficulty: 'Medium', description: 'Rescue a stranded rover on a strange alien world.' },
-  { id: 'lunar-platformer', name: 'Lunar Leap', mode: 'platformer', theme: 'moon', difficulty: 'Easy', description: 'Use low lunar gravity to leap between moon rocks.' },
-  { id: 'jungle-platformer', name: 'Jungle Temple Hop', mode: 'platformer', theme: 'jungle', difficulty: 'Hard', description: 'Climb the jungle temple, avoid spikes, and reach the treasure.' },
+  { id: 'neon-platformer', name: 'Neon Rooftops', mode: 'platformer', theme: 'neon', difficulty: 'Medium', description: 'Fight rooftop patrols, smash crates, open treasure chests, and collect energy orbs.' },
+  { id: 'crystal-platformer', name: 'Crystal Caverns', mode: 'platformer', theme: 'cave', difficulty: 'Easy', description: 'Explore a crystal cave, fight cave creatures, open chests, and gather gems.' },
+  { id: 'starship-platformer', name: 'Starship Scramble', mode: 'platformer', theme: 'space', difficulty: 'Hard', description: 'Battle starship bots, smash supply crates, and reach the escape pod.' },
+  { id: 'sky-island-platformer', name: 'Sky Island Hop', mode: 'platformer', theme: 'sky', difficulty: 'Easy', description: 'Cross floating islands, bonk sky critters, and discover hidden treasure.' },
+  { id: 'pixel-maze-platformer', name: 'Pixel Maze Jumper', mode: 'platformer', theme: 'maze', difficulty: 'Hard', description: 'Battle maze guardians, break crates, and find the exit portal.' },
+  { id: 'alien-platformer', name: 'Alien Planet Rescue', mode: 'platformer', theme: 'alien', difficulty: 'Medium', description: 'Fight alien patrols, activate checkpoints, and rescue a stranded rover.' },
+  { id: 'lunar-platformer', name: 'Lunar Leap', mode: 'platformer', theme: 'moon', difficulty: 'Easy', description: 'Leap between moon rocks, battle moon bugs, and grab heart pickups.' },
+  { id: 'jungle-platformer', name: 'Jungle Temple Hop', mode: 'platformer', theme: 'jungle', difficulty: 'Hard', description: 'Battle temple guardians, activate checkpoints, and claim the treasure.' },
   { id: 'treasure-quiz', name: 'Treasure Quiz', mode: 'quiz', difficulty: 'Medium', description: 'Answer your way through a co-op treasure hunt.' },
   { id: 'category-chain', name: 'Category Chain', mode: 'word', category: true, difficulty: 'Medium', description: 'Take turns naming something in the displayed category.' }
 ];
@@ -136,9 +136,19 @@ function makeGameState(game) {
     state.goal = 20;
     state.builders = {};
   } else if (game.mode === 'platformer') {
+    state.levelSeed = createPlatformerSeed();
     state.platformers = {};
     state.platformers[playerId()] = createPlatformerPlayer();
-    state.coins = getPlatformerLevel(game).coins.map((coin) => ({ ...coin, collected: false }));
+    const level = getPlatformerLevel(game, state.levelSeed);
+    state.coins = level.coins.map((coin) => ({ ...coin, collected: false }));
+    state.enemies = level.enemies.map((enemy) => ({ ...enemy, hp: enemy.maxHp, defeated: false }));
+    state.crates = level.crates.map((crate) => ({ ...crate, broken: false }));
+    state.chests = level.chests.map((chest) => ({ ...chest, opened: false }));
+    state.checkpoints = level.checkpoints.map((checkpoint) => ({ ...checkpoint, activated: false }));
+    state.hearts = level.hearts.map((heart) => ({ ...heart, collected: false }));
+    state.buttons = level.buttons.map((button) => ({ ...button, pressed: false }));
+    state.springs = level.springs.map((spring) => ({ ...spring, bouncing: false }));
+    state.movingPlatforms = level.movingPlatforms.map((platform) => ({ ...platform, direction: 1, previousX: platform.x }));
   }
   players.forEach((id) => { state.scores[id] = 0; });
   return state;
@@ -361,6 +371,14 @@ async function connectGameRoom(code, isHost) {
       gameState.platformers ||= {};
       gameState.platformers[payload.userId] = payload.player;
       if (Array.isArray(payload.coins)) gameState.coins = payload.coins;
+      if (Array.isArray(payload.enemies)) gameState.enemies = payload.enemies;
+      if (Array.isArray(payload.crates)) gameState.crates = payload.crates;
+      if (Array.isArray(payload.chests)) gameState.chests = payload.chests;
+      if (Array.isArray(payload.checkpoints)) gameState.checkpoints = payload.checkpoints;
+      if (Array.isArray(payload.hearts)) gameState.hearts = payload.hearts;
+      if (Array.isArray(payload.buttons)) gameState.buttons = payload.buttons;
+      if (Array.isArray(payload.springs)) gameState.springs = payload.springs;
+      if (Array.isArray(payload.movingPlatforms)) gameState.movingPlatforms = payload.movingPlatforms;
       if (typeof payload.score === 'number') gameState.scores[payload.userId] = payload.score;
       if (activeCanvas) drawPlatformer(activeCanvas);
     })
@@ -759,28 +777,149 @@ const platformerWorlds = {
 };
 
 function createPlatformerPlayer() {
-  return { x: 48, y: 0, vx: 0, vy: 0, onGround: false, score: 0, lives: 3, collected: [], won: false };
+  const extraLives = window.SiteShop?.getUpgradeLevel('heart-container') || 0;
+  return { x: 48, y: 0, vx: 0, vy: 0, onGround: false, jumpCount: 0, facing: 1, attackReadyAt: 0, checkpointX: 48, checkpointY: 438, score: 0, lives: Math.min(5, 3 + extraLives), collected: [], won: false };
 }
 
-function getPlatformerLevel(game) {
-  const seed = game.id.length;
-  const platforms = [
-    { x: 0, y: 478, w: 420, h: 70 }, { x: 500, y: 430, w: 145, h: 18 },
-    { x: 710, y: 375, w: 150, h: 18 }, { x: 940, y: 430, w: 170, h: 18 },
-    { x: 1190, y: 365, w: 150, h: 18 }, { x: 1430, y: 420, w: 170, h: 18 },
-    { x: 1680, y: 350, w: 180, h: 18 }, { x: 1900, y: 478, w: 320, h: 70 }
-  ];
-  if (seed % 2) platforms.splice(3, 0, { x: 875, y: 315, w: 110, h: 16 });
-  const coins = [
-    { x: 270, y: 430 }, { x: 555, y: 385 }, { x: 770, y: 330 },
-    { x: 985, y: 385 }, { x: 1245, y: 320 }, { x: 1490, y: 375 },
-    { x: 1740, y: 305 }, { x: 2040, y: 430 }
-  ];
-  const hazards = [
-    { x: 335, y: 458, w: 36, h: 20 }, { x: 1020, y: 410, w: 40, h: 20 },
-    { x: 1510, y: 400, w: 38, h: 20 }
-  ];
-  return { width: 2220, height: 548, platforms, coins, hazards, goal: { x: 2130, y: 398, w: 28, h: 80 } };
+function createPlatformerSeed() {
+  const values = new Uint32Array(1);
+  if (window.crypto?.getRandomValues) window.crypto.getRandomValues(values);
+  else values[0] = (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
+  return values[0] || 1;
+}
+
+function makeSeededRandom(seed) {
+  let value = seed >>> 0;
+  return () => {
+    value += 0x6D2B79F5;
+    let result = value;
+    result = Math.imul(result ^ (result >>> 15), result | 1);
+    result ^= result + Math.imul(result ^ (result >>> 7), result | 61);
+    return ((result ^ (result >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function getPlatformerLevel(game, levelSeed = gameState?.levelSeed || 1) {
+  let gameHash = 2166136261;
+  for (const character of game.id) gameHash = Math.imul(gameHash ^ character.charCodeAt(0), 16777619);
+  const random = makeSeededRandom((Number(levelSeed) ^ gameHash) >>> 0);
+  const platforms = [{ x: 0, y: 478, w: 340, h: 70 }];
+  const coins = [{ x: 255, y: 430 }];
+  const hazards = [{ x: 105, y: 458, w: 36, h: 20 }];
+  const enemies = [];
+  const crates = [];
+  const chests = [];
+  const checkpoints = [];
+  const hearts = [];
+  const buttons = [];
+  const springs = [];
+  const movingPlatforms = [];
+  const difficulty = game.difficulty === 'Hard' ? 2 : game.difficulty === 'Medium' ? 1 : 0;
+  const chunkCount = 8 + difficulty * 2 + Math.floor(random() * 3);
+  const chunks = {
+    climb: { steps: [-30, -34, -28], branch: -1 },
+    descent: { steps: [30, 34, 28], branch: 1 },
+    ridge: { steps: [-38, -18, 40], branch: -1 },
+    valley: { steps: [38, 18, -40], branch: 1 },
+    zigzag: { steps: [-34, 48, -24], branch: 1 },
+    switchback: { steps: [34, -48, 24], branch: -1 }
+  };
+  const chunkRoute = ['climb', 'climb', 'ridge', 'descent', 'descent', 'valley', 'zigzag', 'switchback'];
+  let previous = platforms[0];
+  let sectionIndex = 0;
+
+  for (let chunkIndex = 0; chunkIndex < chunkCount; chunkIndex += 1) {
+    const chunkName = chunkRoute[chunkIndex % chunkRoute.length];
+    const chunk = chunks[chunkName];
+    const routeNodes = [];
+    for (let stepIndex = 0; stepIndex < chunk.steps.length; stepIndex += 1) {
+      const gap = 50 + difficulty * 8 + Math.floor(random() * 20);
+      const width = 100 - difficulty * 8 + Math.floor(random() * 31);
+      const heightJitter = Math.floor(random() * 15) - 7;
+      const y = Math.max(300, Math.min(465, previous.y + chunk.steps[stepIndex] + heightJitter));
+      const platform = { x: previous.x + previous.w + gap, y, w: width, h: 16 + Math.floor(random() * 5) };
+      platforms.push(platform);
+      routeNodes.push(platform);
+      coins.push({ x: platform.x + Math.floor(width * (0.35 + random() * 0.3)), y: y - 34 });
+      if (stepIndex === 0 || stepIndex === 2) {
+        buttons.push({ x: platform.x + Math.floor(width * (stepIndex === 0 ? 0.25 : 0.75)), y: y - 9, w: 20, h: 9, id: `button-${chunkIndex}-${stepIndex}`, opensPlatformId: chunkIndex % 2 === 1 && stepIndex === 0 ? `lift-${chunkIndex}` : null });
+      }
+      if (stepIndex === 1) springs.push({ x: platform.x + Math.floor(width * (0.35 + random() * 0.3)), y: y - 12, w: 28, h: 12, strength: 790 + difficulty * 45 });
+
+      // Each chunk gets a side route above or below the main path for real vertical exploration.
+      if (stepIndex === 1 || (stepIndex === 2 && random() < 0.55)) {
+        const branchWidth = 58 + Math.floor(random() * 24);
+        const branchGap = 22 + Math.floor(random() * 20);
+        const branchX = previous.x + previous.w + branchGap;
+        const branchY = Math.max(292, Math.min(468, y + chunk.branch * (58 + Math.floor(random() * 28))));
+        platforms.push({ x: branchX, y: branchY, w: branchWidth, h: 14 });
+        if (random() < 0.72) coins.push({ x: branchX + Math.floor(branchWidth / 2), y: branchY - 28 });
+      }
+
+      const progress = (chunkIndex + stepIndex / chunk.steps.length) / chunkCount;
+      const enemyWidth = 30;
+      const patrolInset = 10;
+      const patrolRange = Math.max(12, width - enemyWidth - patrolInset * 2);
+      let enemyOnPlatform = false;
+      if (sectionIndex === 0 || random() < 0.42 + difficulty * 0.14 + progress * 0.18) {
+        const enemyX = platform.x + patrolInset + Math.floor(random() * patrolRange);
+        enemies.push({ x: enemyX, y: y - 30, w: enemyWidth, h: 30, minX: platform.x + patrolInset, maxX: platform.x + width - enemyWidth - patrolInset, speed: 45 + difficulty * 12 + Math.floor(random() * 28), direction: random() < 0.5 ? -1 : 1, maxHp: 1 + (difficulty === 2 && random() < 0.4 ? 1 : 0) });
+        enemyOnPlatform = true;
+      }
+      let crateOnPlatform = null;
+      if (sectionIndex === 1 || (sectionIndex > 1 && random() < 0.24)) {
+        crateOnPlatform = { x: platform.x + Math.floor(width * 0.55), y: y - 28, w: 26, h: 28 };
+        crates.push(crateOnPlatform);
+      }
+      if (sectionIndex > 2 && sectionIndex % 4 === 2) chests.push({ x: platform.x + Math.floor(width * 0.3), y: y - 28, w: 28, h: 26 });
+      if (sectionIndex > 0 && sectionIndex % 6 === 4) checkpoints.push({ x: platform.x + Math.floor(width * 0.7), y: y - 36, w: 18, h: 36 });
+      if (sectionIndex > 1 && sectionIndex % 5 === 1) hearts.push({ x: platform.x + Math.floor(width * 0.78), y: y - 25, w: 20, h: 20 });
+
+      // Keep spikes off ledges already occupied by crates or patrolling enemies.
+      const hazardChance = 0.32 + difficulty * 0.1 + progress * 0.16;
+      if (random() < hazardChance && width >= 84 && !crateOnPlatform && !enemyOnPlatform) {
+        const hazardWidth = 28 + Math.floor(random() * 9);
+        const safeLeft = platform.x + 8;
+        const safeRight = platform.x + width - hazardWidth - 8;
+        const hazardCandidates = [safeLeft, safeRight].filter((hazardX) => !buttons.some((button) => button.y === y - 9 && hazardX < button.x + button.w && hazardX + hazardWidth > button.x)
+          && !springs.some((spring) => spring.y === y - 12 && hazardX < spring.x + spring.w && hazardX + hazardWidth > spring.x));
+        if (hazardCandidates.length) {
+          const hazardX = hazardCandidates[Math.floor(random() * hazardCandidates.length)];
+          hazards.push({ x: hazardX, y: y - 20, w: hazardWidth, h: 20 });
+        }
+      }
+      previous = platform;
+      sectionIndex += 1;
+    }
+    if (chunkIndex % 2 === 1 && routeNodes.length >= 2) {
+      const from = routeNodes[0];
+      const to = routeNodes[1];
+      const width = 42;
+      const startX = from.x + from.w + 3;
+      const endX = to.x - width - 3;
+      if (endX > startX) {
+        movingPlatforms.push({ id: `lift-${chunkIndex}`, x: startX, y: Math.round((from.y + to.y) / 2) + 28, w: width, h: 12, startX, endX, speed: 35 + difficulty * 10 + Math.floor(random() * 16), direction: 1, enabled: false });
+      }
+    }
+    // One reusable chunk variation adds a ledge on the opposite side of the route.
+    if (routeNodes.length >= 2 && random() < 0.7) {
+      const from = routeNodes[0];
+      const to = routeNodes[1];
+      const ledgeWidth = 54 + Math.floor(random() * 20);
+      const ledgeX = from.x + from.w + Math.floor(Math.max(8, to.x - from.x - from.w - ledgeWidth) / 2);
+      const ledgeY = Math.max(292, Math.min(468, from.y + (chunk.branch * -1) * (52 + Math.floor(random() * 28))));
+      platforms.push({ x: ledgeX, y: ledgeY, w: ledgeWidth, h: 14 });
+      if (random() < 0.6) coins.push({ x: ledgeX + ledgeWidth / 2, y: ledgeY - 27 });
+    }
+  }
+
+  const finish = { x: previous.x + previous.w + 60, y: 478, w: 350, h: 70 };
+  platforms.push(finish);
+  coins.push({ x: finish.x + 115, y: 430 }, { x: finish.x + 260, y: 430 });
+  crates.push({ x: finish.x + 170, y: 450, w: 28, h: 28 });
+  chests.push({ x: finish.x + 70, y: 450, w: 28, h: 26 });
+  const goal = { x: finish.x + finish.w - 50, y: 398, w: 28, h: 80 };
+  return { width: goal.x + 180, height: 548, platforms, coins, hazards, enemies, crates, chests, checkpoints, hearts, buttons, springs, movingPlatforms, goal };
 }
 
 function renderPlatformer(card) {
@@ -791,17 +930,19 @@ function renderPlatformer(card) {
   canvas.setAttribute('aria-label', `${activeGame.name} 2D platform game`);
   const help = document.createElement('p');
   help.className = 'game-key-help';
-  help.textContent = 'Move: ←/→ or A/D · Jump: ↑, W, or Space. Touch controls are below.';
+  help.textContent = 'Move both ways: ←/→ or A/D · Jump: ↑/W/Space · Fight: J/Attack · Open chests or press nearby buttons: E/Interact. Step on springs to launch; buttons power ↔ lifts.';
   const controls = document.createElement('div');
   controls.className = 'platformer-controls';
-  [['◀', 'left'], ['JUMP', 'jump'], ['▶', 'right']].forEach(([label, action]) => {
+  [['◀', 'left'], ['JUMP', 'jump'], ['▶', 'right'], ['ATTACK', 'attack'], ['INTERACT', 'interact']].forEach(([label, action]) => {
     const button = makeButton(label, () => {}, 'platformer-control');
-    button.setAttribute('aria-label', action === 'jump' ? 'Jump' : `Move ${action}`);
+    button.setAttribute('aria-label', action === 'jump' ? 'Jump' : action === 'attack' ? 'Attack nearby enemies or crates' : action === 'interact' ? 'Open a nearby chest' : `Move ${action}`);
     button.addEventListener('pointerdown', (event) => {
       event.preventDefault();
       button.setPointerCapture?.(event.pointerId);
       platformerKeys.add(action);
       if (action === 'jump') jumpPlatformer();
+      if (action === 'attack') attackPlatformer();
+      if (action === 'interact') interactPlatformer();
     });
     const stop = () => platformerKeys.delete(action);
     button.addEventListener('pointerup', stop);
@@ -810,10 +951,21 @@ function renderPlatformer(card) {
     controls.append(button);
   });
   const restart = makeButton('Restart level', restartPlatformer, 'btn-secondary platformer-restart');
-  card.append(canvas, help, controls, restart);
+  const status = document.createElement('p');
+  status.className = 'mini-game-status platformer-status';
+  card.append(canvas, help, controls, status, restart);
   activeCanvas = canvas;
   gameState.platformers ||= {};
   gameState.platformers[playerId()] ||= createPlatformerPlayer();
+  const level = getPlatformerLevel(activeGame, gameState.levelSeed);
+  gameState.enemies ||= level.enemies.map((enemy) => ({ ...enemy, hp: enemy.maxHp, defeated: false }));
+  gameState.crates ||= level.crates.map((crate) => ({ ...crate, broken: false }));
+  gameState.chests ||= level.chests.map((chest) => ({ ...chest, opened: false }));
+  gameState.checkpoints ||= level.checkpoints.map((checkpoint) => ({ ...checkpoint, activated: false }));
+  gameState.hearts ||= level.hearts.map((heart) => ({ ...heart, collected: false }));
+  gameState.buttons ||= level.buttons.map((button) => ({ ...button, pressed: false }));
+  gameState.springs ||= level.springs.map((spring) => ({ ...spring, bouncing: false }));
+  gameState.movingPlatforms ||= level.movingPlatforms.map((platform) => ({ ...platform, direction: 1, previousX: platform.x }));
   if (!gameState.platformers[playerId()].y) {
     gameState.platformers[playerId()].y = 430;
     gameState.platformers[playerId()].onGround = true;
@@ -822,7 +974,116 @@ function renderPlatformer(card) {
   drawPlatformer(canvas);
   if (platformerFrame) cancelAnimationFrame(platformerFrame);
   platformerFrame = requestAnimationFrame(tickPlatformer);
-  showStatus(card, 'Collect glowing orbs, avoid hazards, and touch the beacon to finish.');
+  status.textContent = `Explore both directions: ${level.coins.length} orbs, ${level.buttons.length} buttons, ${level.springs.length} springs, lifts, patrols, crates, chests, checkpoints, and hearts.`;
+}
+
+function getLocalPlatformerPlayer() {
+  return gameState?.platformers?.[playerId()];
+}
+
+function setPlatformerStatus(message) {
+  const status = builtInGame.querySelector('.platformer-status');
+  if (status) status.textContent = message;
+  gameState.status = message;
+}
+
+function broadcastPlatformerWorld() {
+  if (!gameRoomChannel) return;
+  gameRoomChannel.send({
+    type: 'broadcast',
+    event: 'platformer-player',
+    payload: {
+      userId: playerId(),
+      player: getLocalPlatformerPlayer(),
+      coins: gameState.coins,
+      enemies: gameState.enemies,
+      crates: gameState.crates,
+      chests: gameState.chests,
+      checkpoints: gameState.checkpoints,
+      hearts: gameState.hearts,
+      buttons: gameState.buttons,
+      springs: gameState.springs,
+      movingPlatforms: gameState.movingPlatforms,
+      score: getLocalPlatformerPlayer()?.score
+    }
+  });
+}
+
+function activatePlatformerButton(button) {
+  if (button.pressed) return;
+  button.pressed = true;
+  const lift = (gameState.movingPlatforms || []).find((platform) => platform.id === button.opensPlatformId);
+  if (lift) lift.enabled = true;
+  const player = getLocalPlatformerPlayer();
+  if (player) {
+    player.score += 1;
+    gameState.scores[playerId()] = player.score;
+  }
+  window.SiteShop?.earn(2, `platformer:${activeGame.id}:${gameState.levelSeed}:${playerId()}:${button.id}`);
+  setPlatformerStatus(lift ? 'Button pressed! The back-and-forth lift is powered up.' : 'Button pressed! +2 points.');
+  broadcastPlatformerWorld();
+}
+
+function attackPlatformer() {
+  const player = getLocalPlatformerPlayer();
+  if (!player || player.won || player.lives <= 0) return;
+  const now = Date.now();
+  if (now < (player.attackReadyAt || 0)) return;
+  player.attackReadyAt = now + 420;
+  player.attackUntil = now + 180;
+  const facing = player.facing || 1;
+  const attackX = player.x + (facing > 0 ? 28 : -58);
+  const target = (gameState.enemies || []).find((enemy) => !enemy.defeated
+    && enemy.x + enemy.w > attackX && enemy.x < attackX + 58
+    && player.y + 48 > enemy.y && player.y - 12 < enemy.y + enemy.h);
+  if (target) {
+    target.hp -= 1;
+    if (target.hp <= 0) {
+      target.defeated = true;
+      player.score += 2;
+      gameState.scores[playerId()] = player.score;
+      window.SiteShop?.earn(3, `platformer:${activeGame.id}:${gameState.levelSeed}:${playerId()}:enemy:${gameState.enemies.indexOf(target)}`);
+      setPlatformerStatus('Patrol defeated! +3 points.');
+    } else setPlatformerStatus(`Hit! Patrol has ${target.hp} health left.`);
+    broadcastPlatformerWorld();
+    return;
+  }
+  const crate = (gameState.crates || []).find((item) => !item.broken
+    && item.x + item.w > attackX && item.x < attackX + 58
+    && player.y + 48 > item.y && player.y - 12 < item.y + item.h);
+  if (crate) {
+    crate.broken = true;
+    player.score += 1;
+    gameState.scores[playerId()] = player.score;
+    window.SiteShop?.earn(2, `platformer:${activeGame.id}:${gameState.levelSeed}:${playerId()}:crate:${gameState.crates.indexOf(crate)}`);
+    setPlatformerStatus('Crate smashed! +2 points.');
+    broadcastPlatformerWorld();
+  } else setPlatformerStatus('Swing! Face an enemy or crate and get closer.');
+}
+
+function interactPlatformer() {
+  const player = getLocalPlatformerPlayer();
+  if (!player || player.won || player.lives <= 0) return;
+  const button = (gameState.buttons || []).find((item) => !item.pressed
+    && Math.abs((item.x + item.w / 2) - (player.x + 14)) < 58
+    && Math.abs(item.y - (player.y + 40)) < 48);
+  if (button) {
+    activatePlatformerButton(button);
+    return;
+  }
+  const chest = (gameState.chests || []).find((item) => !item.opened
+    && Math.abs((item.x + item.w / 2) - (player.x + 14)) < 72
+    && Math.abs((item.y + item.h / 2) - (player.y + 20)) < 62);
+  if (!chest) {
+    setPlatformerStatus('No chest nearby—move close and press Interact.');
+    return;
+  }
+  chest.opened = true;
+  player.score += 3;
+  gameState.scores[playerId()] = player.score;
+  window.SiteShop?.earn(10, `platformer:${activeGame.id}:${gameState.levelSeed}:${playerId()}:chest:${gameState.chests.indexOf(chest)}`);
+  setPlatformerStatus('Treasure chest opened! +10 points.');
+  broadcastPlatformerWorld();
 }
 
 function drawPlatformer(canvas) {
@@ -830,7 +1091,7 @@ function drawPlatformer(canvas) {
   const context = canvas.getContext('2d');
   if (!context) return;
   const palette = platformerWorlds[activeGame.theme] || platformerWorlds.neon;
-  const level = getPlatformerLevel(activeGame);
+  const level = getPlatformerLevel(activeGame, gameState.levelSeed);
   const players = gameState.platformers || {};
   const localPlayer = players[playerId()] || createPlatformerPlayer();
   const cameraX = Math.max(0, Math.min(level.width - canvas.width, localPlayer.x - canvas.width * 0.35));
@@ -852,6 +1113,35 @@ function drawPlatformer(canvas) {
     context.fillStyle = palette.platform;
     context.fillRect(platform.x, platform.y, platform.w, Math.min(9, platform.h));
   });
+  (gameState.movingPlatforms || []).forEach((platform) => {
+    if (!platform.enabled) return;
+    context.fillStyle = '#d9a7ff';
+    context.fillRect(platform.x, platform.y, platform.w, platform.h);
+    context.fillStyle = '#fff';
+    context.fillRect(platform.x + 7, platform.y + 2, platform.w - 14, 3);
+    context.fillStyle = '#25203e';
+    context.font = 'bold 10px sans-serif';
+    context.fillText('↔', platform.x + platform.w / 2 - 5, platform.y + 11);
+  });
+  (gameState.buttons || []).forEach((button) => {
+    context.fillStyle = button.pressed ? '#56e39b' : '#f5c84c';
+    context.fillRect(button.x, button.y, button.w, button.h);
+    context.fillStyle = '#382b42';
+    context.fillRect(button.x + 3, button.y + 2, button.w - 6, 3);
+  });
+  (gameState.springs || []).forEach((spring) => {
+    context.fillStyle = '#3ed0d0';
+    context.fillRect(spring.x, spring.y, spring.w, 5);
+    context.strokeStyle = '#e8ffff';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(spring.x + 3, spring.y + spring.h);
+    context.lineTo(spring.x + 8, spring.y + 6);
+    context.lineTo(spring.x + 14, spring.y + spring.h);
+    context.lineTo(spring.x + 20, spring.y + 6);
+    context.lineTo(spring.x + spring.w - 3, spring.y + spring.h);
+    context.stroke();
+  });
   (gameState.coins || []).forEach((coin) => {
     if (coin.collected) return;
     context.fillStyle = palette.accent;
@@ -871,6 +1161,64 @@ function drawPlatformer(canvas) {
     context.closePath();
     context.fill();
   });
+  (gameState.enemies || []).forEach((enemy) => {
+    if (enemy.defeated) return;
+    context.fillStyle = '#d84b65';
+    context.fillRect(enemy.x, enemy.y + 7, enemy.w, enemy.h - 7);
+    context.fillStyle = '#ff9c7d';
+    context.beginPath();
+    context.arc(enemy.x + enemy.w / 2, enemy.y + 9, 11, Math.PI, 0);
+    context.fill();
+    context.fillStyle = '#fff';
+    context.fillRect(enemy.x + 7, enemy.y + 11, 5, 5);
+    context.fillRect(enemy.x + 19, enemy.y + 11, 5, 5);
+    context.fillStyle = '#351827';
+    context.fillRect(enemy.x + 9, enemy.y + 12, 2, 3);
+    context.fillRect(enemy.x + 21, enemy.y + 12, 2, 3);
+    if (enemy.maxHp > 1) {
+      context.fillStyle = '#fff';
+      context.fillRect(enemy.x, enemy.y - 6, enemy.w, 4);
+      context.fillStyle = '#ff5364';
+      context.fillRect(enemy.x, enemy.y - 6, enemy.w * enemy.hp / enemy.maxHp, 4);
+    }
+  });
+  (gameState.crates || []).forEach((crate) => {
+    if (crate.broken) return;
+    context.fillStyle = '#9a633d';
+    context.fillRect(crate.x, crate.y, crate.w, crate.h);
+    context.strokeStyle = '#e8b56b';
+    context.lineWidth = 3;
+    context.strokeRect(crate.x + 3, crate.y + 3, crate.w - 6, crate.h - 6);
+    context.beginPath();
+    context.moveTo(crate.x + 4, crate.y + 4);
+    context.lineTo(crate.x + crate.w - 4, crate.y + crate.h - 4);
+    context.moveTo(crate.x + crate.w - 4, crate.y + 4);
+    context.lineTo(crate.x + 4, crate.y + crate.h - 4);
+    context.stroke();
+  });
+  (gameState.chests || []).forEach((chest) => {
+    context.fillStyle = chest.opened ? '#65452f' : '#a96a2f';
+    context.fillRect(chest.x, chest.y + 7, chest.w, chest.h - 7);
+    context.fillStyle = chest.opened ? '#c3a374' : '#ffd65c';
+    context.fillRect(chest.x, chest.y, chest.w, 11);
+    context.fillStyle = '#4b3826';
+    context.fillRect(chest.x + 12, chest.y + 10, 5, 6);
+  });
+  (gameState.checkpoints || []).forEach((checkpoint) => {
+    context.fillStyle = checkpoint.activated ? '#74f5b1' : '#a9d8ef';
+    context.fillRect(checkpoint.x, checkpoint.y, 5, checkpoint.h);
+    context.beginPath();
+    context.moveTo(checkpoint.x + 5, checkpoint.y);
+    context.lineTo(checkpoint.x + 24, checkpoint.y + 7);
+    context.lineTo(checkpoint.x + 5, checkpoint.y + 15);
+    context.fill();
+  });
+  (gameState.hearts || []).forEach((heart) => {
+    if (heart.collected) return;
+    context.fillStyle = '#ff6f9f';
+    context.font = 'bold 24px sans-serif';
+    context.fillText('♥', heart.x, heart.y + 21);
+  });
   context.fillStyle = palette.accent;
   context.fillRect(level.goal.x, level.goal.y, level.goal.w, level.goal.h);
   context.fillStyle = '#fff';
@@ -879,6 +1227,10 @@ function drawPlatformer(canvas) {
   Object.entries(players).forEach(([id, player], index) => {
     context.fillStyle = id === playerId() ? '#ffdf66' : '#ff78b4';
     context.fillRect(player.x, player.y, 28, 40);
+    if (id === playerId() && player.attackUntil > Date.now()) {
+      context.fillStyle = '#fff3a3';
+      context.fillRect(player.x + (player.facing > 0 ? 26 : -24), player.y + 13, 26, 5);
+    }
     context.fillStyle = '#17212b';
     context.fillRect(player.x + 6, player.y + 9, 5, 5);
     context.fillRect(player.x + 18, player.y + 9, 5, 5);
@@ -889,7 +1241,8 @@ function drawPlatformer(canvas) {
   context.restore();
   context.fillStyle = '#fff';
   context.font = 'bold 18px sans-serif';
-  context.fillText(`${activeGame.name}  ·  Orbs ${localPlayer.score}/${level.coins.length}  ·  Lives ${localPlayer.lives}`, 16, 28);
+  const interactiveCount = level.coins.length + level.buttons.length + level.springs.length + level.movingPlatforms.length + level.enemies.length + level.crates.length + level.chests.length + level.checkpoints.length + level.hearts.length;
+  context.fillText(`${activeGame.name} · Stages ${level.platforms.length - 2} · Items ${interactiveCount}+ · Lives ${localPlayer.lives}`, 16, 28);
   if (localPlayer.won) {
     context.fillStyle = 'rgba(0,0,0,.65)';
     context.fillRect(0, 0, canvas.width, canvas.height);
@@ -926,34 +1279,75 @@ function tickPlatformer(timestamp) {
 }
 
 function updatePlatformer(dt) {
-  const level = getPlatformerLevel(activeGame);
+  const level = getPlatformerLevel(activeGame, gameState.levelSeed);
   const players = gameState.platformers || (gameState.platformers = {});
   const player = players[playerId()] || (players[playerId()] = createPlatformerPlayer());
   if (player.won || player.lives <= 0) return;
   const previousY = player.y;
   const moveLeft = platformerKeys.has('left') || platformerKeys.has('arrowleft') || platformerKeys.has('a');
   const moveRight = platformerKeys.has('right') || platformerKeys.has('arrowright') || platformerKeys.has('d');
-  player.vx = (moveRight ? 230 : 0) - (moveLeft ? 230 : 0);
+  if (moveLeft !== moveRight) player.facing = moveLeft ? -1 : 1;
+  const wasGrounded = player.onGround;
+  (gameState.movingPlatforms || []).forEach((platform) => {
+    platform.previousX ??= platform.x;
+    const oldX = platform.x;
+    const wasRiding = platform.enabled && wasGrounded
+      && Math.abs(player.y + 40 - platform.y) <= 3
+      && player.x + 28 > oldX && player.x < oldX + platform.w;
+    if (platform.enabled && platform.endX > platform.startX) {
+      platform.x += platform.speed * platform.direction * dt;
+      if (platform.x >= platform.endX || platform.x <= platform.startX) {
+        platform.x = Math.max(platform.startX, Math.min(platform.endX, platform.x));
+        platform.direction *= -1;
+      }
+    }
+    if (wasRiding) player.x += platform.x - oldX;
+    platform.previousX = oldX;
+  });
+  const speed = 230 + (window.SiteShop?.getUpgradeLevel('swift-boots') || 0) * 35;
+  player.vx = (moveRight ? speed : 0) - (moveLeft ? speed : 0);
   player.x = Math.max(0, Math.min(level.width - 28, player.x + player.vx * dt));
   player.vy = Math.min(760, player.vy + 1450 * dt);
   player.y += player.vy * dt;
   player.onGround = false;
-  level.platforms.forEach((platform) => {
+  [...level.platforms, ...(gameState.movingPlatforms || []).filter((platform) => platform.enabled)].forEach((platform) => {
     const overlapsX = player.x + 28 > platform.x && player.x < platform.x + platform.w;
     const crossedTop = previousY + 40 <= platform.y && player.y + 40 >= platform.y;
     if (overlapsX && crossedTop && player.vy >= 0) {
       player.y = platform.y - 40;
       player.vy = 0;
       player.onGround = true;
+      player.jumpCount = 0;
     }
   });
+  (gameState.buttons || []).forEach((button) => {
+    const overlaps = player.x + 28 > button.x && player.x < button.x + button.w
+      && player.y + 40 >= button.y && player.y + 40 <= button.y + button.h + 12;
+    if (overlaps && !button.pressed) activatePlatformerButton(button);
+  });
+  (gameState.springs || []).forEach((spring) => {
+    const onSpring = player.onGround && player.x + 28 > spring.x && player.x < spring.x + spring.w
+      && Math.abs(player.y + 40 - (spring.y + spring.h)) <= 2;
+    if (onSpring && Date.now() >= (player.springCooldownUntil || 0)) {
+      spring.bouncing = true;
+      player.vy = -spring.strength;
+      player.y -= 2;
+      player.onGround = false;
+      player.jumpCount = 0;
+      player.springCooldownUntil = Date.now() + 450;
+      setPlatformerStatus('Spring launch!');
+    } else if (!onSpring) spring.bouncing = false;
+  });
   if (player.y > level.height + 80) resetPlatformerPlayer(player, true);
-  (gameState.coins || []).forEach((coin) => {
+  (gameState.coins || []).forEach((coin, index) => {
     if (coin.collected) return;
-    if (player.x + 28 > coin.x - 10 && player.x < coin.x + 10 && player.y + 40 > coin.y - 10 && player.y < coin.y + 10) {
+    const magnetLevel = window.SiteShop?.getUpgradeLevel('orb-magnet') || 0;
+    const pickupRadius = 10 + magnetLevel * 14;
+    if (player.x + 28 > coin.x - pickupRadius && player.x < coin.x + pickupRadius && player.y + 40 > coin.y - pickupRadius && player.y < coin.y + pickupRadius) {
       coin.collected = true;
       player.score += 1;
       gameState.scores[playerId()] = player.score;
+      window.SiteShop?.earn(5, `platformer:${activeGame.id}:${gameState.levelSeed}:${playerId()}:orb:${index}`);
     }
   });
   level.hazards.forEach((hazard) => {
@@ -961,43 +1355,98 @@ function updatePlatformer(dt) {
       resetPlatformerPlayer(player, true);
     }
   });
+  (gameState.enemies || []).forEach((enemy) => {
+    if (enemy.defeated) return;
+    enemy.x += enemy.speed * enemy.direction * dt;
+    if (enemy.x <= enemy.minX || enemy.x >= enemy.maxX) {
+      enemy.x = Math.max(enemy.minX, Math.min(enemy.maxX, enemy.x));
+      enemy.direction *= -1;
+    }
+    if (player.x + 28 <= enemy.x || player.x >= enemy.x + enemy.w || player.y + 40 <= enemy.y + 4 || player.y >= enemy.y + enemy.h) return;
+    if (player.vy > 80 && previousY + 40 <= enemy.y + 16) {
+      enemy.hp -= 1;
+      player.y = enemy.y - 40;
+      player.vy = -300;
+      player.onGround = false;
+      player.jumpCount = 1;
+      if (enemy.hp <= 0) {
+        enemy.defeated = true;
+        player.score += 2;
+        gameState.scores[playerId()] = player.score;
+        window.SiteShop?.earn(3, `platformer:${activeGame.id}:${gameState.levelSeed}:${playerId()}:enemy:${gameState.enemies.indexOf(enemy)}`);
+        setPlatformerStatus('Stomped a patrol! +3 points.');
+      } else setPlatformerStatus(`Stomp! Patrol has ${enemy.hp} health left.`);
+    } else {
+      resetPlatformerPlayer(player, true);
+      setPlatformerStatus(player.lives > 0 ? 'A patrol hit you! Respawning at your checkpoint.' : 'A patrol got you! Restart to try again.');
+    }
+  });
+  (gameState.checkpoints || []).forEach((checkpoint) => {
+    if (!checkpoint.activated && player.x + 28 > checkpoint.x - 8 && player.x < checkpoint.x + checkpoint.w + 8 && player.y + 40 > checkpoint.y) {
+      checkpoint.activated = true;
+      player.checkpointX = checkpoint.x - 6;
+      player.checkpointY = checkpoint.y - 4;
+      setPlatformerStatus('Checkpoint activated! You will respawn here.');
+    }
+  });
+  (gameState.hearts || []).forEach((heart, index) => {
+    if (heart.collected || player.lives >= 5) return;
+    if (player.x + 28 > heart.x && player.x < heart.x + heart.w && player.y + 40 > heart.y && player.y < heart.y + heart.h) {
+      heart.collected = true;
+      player.lives = Math.min(5, player.lives + 1);
+      window.SiteShop?.earn(2, `platformer:${activeGame.id}:${gameState.levelSeed}:${playerId()}:heart:${index}`);
+      setPlatformerStatus('Heart found! +1 life and +2 points.');
+    }
+  });
   if (player.x + 28 > level.goal.x && player.y + 40 > level.goal.y - 30) {
     player.won = true;
     gameState.status = `${getPlayerName(playerId())} completed ${activeGame.name}!`;
+    window.SiteShop?.earn(25, `platformer:${activeGame.id}:${gameState.levelSeed}:${playerId()}:finish`);
   }
-  if (gameRoomChannel && (moveLeft || moveRight || !player.onGround) && timestamp - platformerLastBroadcast > 100) {
+  if (gameRoomChannel && (moveLeft || moveRight || !player.onGround || (gameState.movingPlatforms || []).some((platform) => platform.enabled)) && timestamp - platformerLastBroadcast > 100) {
     platformerLastBroadcast = timestamp;
-    gameRoomChannel.send({
-      type: 'broadcast',
-      event: 'platformer-player',
-      payload: { userId: playerId(), player, coins: gameState.coins, score: player.score }
-    });
+    broadcastPlatformerWorld();
   }
 }
 
 function jumpPlatformer() {
   const player = gameState?.platformers?.[playerId()];
-  if (activeGame?.mode === 'platformer' && player?.onGround && !player.won && player.lives > 0) {
+  const maxJumps = 1 + (window.SiteShop?.hasUpgrade('double-jump') ? 1 : 0);
+  if (activeGame?.mode === 'platformer' && player && (player.onGround || player.jumpCount < maxJumps) && !player.won && player.lives > 0) {
     player.vy = -560;
     player.onGround = false;
+    player.jumpCount = (player.jumpCount || 0) + 1;
   }
 }
 
 function resetPlatformerPlayer(player, loseLife = false) {
   if (loseLife) player.lives = Math.max(0, player.lives - 1);
-  player.x = 48;
-  player.y = 438;
+  player.x = player.checkpointX ?? 48;
+  player.y = player.checkpointY ?? 438;
   player.vx = 0;
   player.vy = 0;
+  player.jumpCount = 0;
   player.onGround = true;
   if (player.lives <= 0) gameState.status = 'Out of lives! Press Restart to try again.';
 }
 
 function restartPlatformer() {
-  const level = getPlatformerLevel(activeGame);
-  gameState.platformers[playerId()] = createPlatformerPlayer();
-  gameState.platformers[playerId()].y = 438;
+  gameState.levelSeed = createPlatformerSeed();
+  const level = getPlatformerLevel(activeGame, gameState.levelSeed);
+  Object.keys(gameState.platformers || {}).forEach((id) => {
+    gameState.platformers[id] = createPlatformerPlayer();
+    gameState.platformers[id].y = 438;
+    gameState.platformers[id].onGround = true;
+  });
   gameState.coins = level.coins.map((coin) => ({ ...coin, collected: false }));
+  gameState.enemies = level.enemies.map((enemy) => ({ ...enemy, hp: enemy.maxHp, defeated: false }));
+  gameState.crates = level.crates.map((crate) => ({ ...crate, broken: false }));
+  gameState.chests = level.chests.map((chest) => ({ ...chest, opened: false }));
+  gameState.checkpoints = level.checkpoints.map((checkpoint) => ({ ...checkpoint, activated: false }));
+  gameState.hearts = level.hearts.map((heart) => ({ ...heart, collected: false }));
+  gameState.buttons = level.buttons.map((button) => ({ ...button, pressed: false }));
+  gameState.springs = level.springs.map((spring) => ({ ...spring, bouncing: false }));
+  gameState.movingPlatforms = level.movingPlatforms.map((platform) => ({ ...platform, direction: 1, previousX: platform.x, enabled: false }));
   gameState.status = 'Level restarted.';
   sendState();
 }
@@ -1088,10 +1537,14 @@ document.addEventListener('keydown', (event) => {
   const key = event.key.toLowerCase();
   const action = ['arrowleft', 'a'].includes(key) ? 'left'
     : ['arrowright', 'd'].includes(key) ? 'right'
-      : ['arrowup', 'w', ' '].includes(key) ? 'jump' : null;
+      : ['arrowup', 'w', ' '].includes(key) ? 'jump'
+        : key === 'j' ? 'attack'
+          : key === 'e' ? 'interact' : null;
   if (!action) return;
   event.preventDefault();
   if (action === 'jump') jumpPlatformer();
+  else if (action === 'attack') attackPlatformer();
+  else if (action === 'interact') interactPlatformer();
   else platformerKeys.add(action);
 });
 
