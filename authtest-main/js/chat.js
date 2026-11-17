@@ -22,7 +22,6 @@ const chatElements = {
   shopView: document.getElementById('shopView'),
   musicView: document.getElementById('musicView'),
   blogView: document.getElementById('blogView'),
-  extensionsView: document.getElementById('extensionsView'),
   messages: document.getElementById('chatMessages'),
   form: document.getElementById('chatForm'),
   input: document.getElementById('chatInput'),
@@ -357,7 +356,6 @@ chatElements.tabs.forEach((tab) => {
     const isShop = tab.dataset.view === 'shop';
     const isMusic = tab.dataset.view === 'music';
     const isBlog = tab.dataset.view === 'blog';
-    const isExtensions = tab.dataset.view === 'extensions';
     const selectedView = isHome ? chatElements.homeView
       : isChat ? chatElements.chatView
       : isSettings ? chatElements.settingsView
@@ -365,20 +363,16 @@ chatElements.tabs.forEach((tab) => {
           : isShop ? chatElements.shopView
             : isMusic ? chatElements.musicView
               : isBlog ? chatElements.blogView
-                : isExtensions ? chatElements.extensionsView
-                  : chatElements.achievementsView;
+                : chatElements.achievementsView;
     chatElements.tabs.forEach((item) => {
       const active = item === tab;
       item.classList.toggle('is-active', active);
       item.setAttribute('aria-selected', String(active));
     });
-    [chatElements.homeView, chatElements.achievementsView, chatElements.chatView, chatElements.settingsView, chatElements.gamesView, chatElements.shopView, chatElements.musicView, chatElements.blogView, chatElements.extensionsView]
+    [chatElements.homeView, chatElements.achievementsView, chatElements.chatView, chatElements.settingsView, chatElements.gamesView, chatElements.shopView, chatElements.musicView, chatElements.blogView]
       .forEach((view) => {
         view.hidden = view !== selectedView;
       });
-    document.querySelectorAll('.extension-view').forEach((view) => {
-      view.hidden = true;
-    });
     if (!isGames) window.closeActiveGame?.();
     if (isChat) {
       loadChat();

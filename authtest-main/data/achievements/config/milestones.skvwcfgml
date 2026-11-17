@@ -1,0 +1,8 @@
+# Rank tiers are based on achievement points.
+# Format: <points required>: <rank name>
+0: Wheat
+100: Yeast
+250: Burnt Bread
+500: Bread
+1000: Muffin
+2000: Cookie

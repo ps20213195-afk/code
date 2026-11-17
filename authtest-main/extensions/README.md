@@ -1,6 +1,6 @@
 # Skybase website extensions
 
-Extensions are add-ons for this website. They are listed in `index.json`, shown in the **Extensions** catalog, and get their own navigation tab after installation. Installed extensions and their saved checkbox state are local to the current browser.
+Extensions are add-ons for this website. They are listed in `index.json`, shown in the **Extensions** catalog, and get their own navigation tab after installation. Each extension's HTML runs in a sandboxed iframe document, separate from the website's DOM and CSS. Installed extensions and their saved checkbox state are local to the current browser.
 
 ## Add an extension
 
@@ -26,8 +26,8 @@ Example file structure:
 - `!@TYPE:` is required. Accepted labels are `WIN`, `COL`, `PAR`, `CSS`, and `THEME`. The first four render in the extension's own page; `THEME` uses the custom theme format below.
 - `!@NAME:` is the human-readable name shown in the catalog and navigation.
 - Put each content block between a matching `&&START<number>&&;` and `&&END<number>&&;` pair. Numbers must match, and each block number should be unique in a file. A file needs at least one complete block.
-- Blocks contain HTML. Add CSS in a `<style>...</style>` element inside a block. Selectors are automatically scoped beneath that extension's content, so use your own class names (for example `.my-widget h2`). Keep CSS rules simple and avoid `@import`, external URLs, and global selectors.
-- JavaScript inside `<script>` elements is supported. The installer asks for explicit confirmation before allowing an extension's scripts to run, including if a later update adds scripts. Scripts run with the page's privileges and can read or change anything available to the website, including signed-in account data. Only install scripts you wrote or fully trust. Installing is at your own risk; uninstalling cannot undo actions a script has already taken. Inline event attributes are still removed, and forms/embedded frames are not supported.
+- Blocks contain HTML. Add CSS in a `<style>...</style>` element inside a block. CSS runs inside that extension's isolated document and cannot style the main website. Keep CSS simple and avoid `@import` and external URLs.
+- JavaScript inside `<script>` elements is supported inside the sandboxed extension document. The installer asks for explicit confirmation before allowing scripts to run, including if a later update adds scripts. Scripts cannot access the website's DOM or signed-in session. Forms are allowed in the sandbox; embedded frames, objects, and inline event attributes are removed.
 - Native checkboxes can save their checked state in this browser by adding a unique `data-extension-persist` value, for example:
 
 ```html
@@ -51,7 +51,7 @@ Each persistence value must be unique within its extension. The website stores i
 }
 ```
 
-The sample `example.extensionformywebsite` is a complete focus checklist demonstrating metadata, an HTML content block, scoped CSS, and persistent checkboxes.
+The sample `example.extensionformywebsite` is a focus checklist demonstrating metadata, an HTML content block, and persistent checkboxes.
 
 ## Theme extensions
 
@@ -75,4 +75,4 @@ v\/v
 
 Supported tokens are `^theme` and `^colorset` (both target `html[data-theme]`, with enough selector priority to override Classic, Midnight, and Sunset presets), `^body`, `^panel`, `^header`, `^button`, `^text`, `^heading`, `^tab`, and `^input`. Theme declarations are parsed and limited to these targets; external URLs and executable CSS are rejected. Install the theme, open its navigation tab, and select **Apply theme**. Theme colors stay active when the built-in appearance preset changes. The active extension theme is saved locally and restored on reload. Uninstalling the active theme removes its styling.
 
-`aurora-theme.extensionformywebsite` demonstrates both a normal HTML block and a theme block in the same file.
+`aurora-theme.extensionformywebsite` demonstrates both a normal isolated HTML block and a theme block.

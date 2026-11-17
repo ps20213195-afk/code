@@ -38,7 +38,12 @@ window.AchievementLib.createRenderers = function createRenderers(state, elements
 
     function renderAll() {
         const summary = getSummary(state);
-        if (elements.scoreEl) elements.scoreEl.textContent = `Points: ${summary.unlockedPoints} / ${summary.totalPoints}`;
+        const currentRank = state.milestones
+            .filter(rank => summary.unlockedPoints >= rank.points)
+            .at(-1);
+        if (elements.scoreEl) {
+            elements.scoreEl.textContent = `Rank: ${currentRank?.name || "Wheat"} | Points: ${summary.unlockedPoints} / ${summary.totalPoints}`;
+        }
         if (!elements.gridEl) return;
         elements.gridEl.innerHTML = "";
         state.achievementsMap.forEach(achievement => {
@@ -68,15 +73,7 @@ window.AchievementLib.createRenderers = function createRenderers(state, elements
         state.milestones.forEach(milestone => {
             const unlocked = unlockedPoints >= milestone.points;
             const chip = document.createElement("article");
-            const tier = milestone.name.toLowerCase();
-            const hasMedal = tier !== "mythical";
-            chip.className = "milestone-chip " + (unlocked ? "is-unlocked" : "is-locked") + (hasMedal ? " has-medal" : "");
-            if (hasMedal) {
-                const medalWrap = document.createElement("span"); medalWrap.className = "milestone-medal";
-                const medal = document.createElement("span"); medal.className = `icons_medal icons_medal-${tier}`;
-                medalWrap.append(medal);
-                chip.append(medalWrap);
-            }
+            chip.className = "milestone-chip " + (unlocked ? "is-unlocked" : "is-locked");
             const name = document.createElement("p"); name.className = "milestone-name"; name.textContent = milestone.name;
             const req = document.createElement("p"); req.className = "milestone-req"; req.textContent = `${milestone.points}p`;
             const status = document.createElement("p"); status.className = "milestone-status"; status.title = unlocked ? "Reached" : "Locked";
@@ -131,7 +128,7 @@ window.AchievementLib.createRenderers = function createRenderers(state, elements
 
     function showMilestonePopup(milestone) {
         showPopup(
-            `Milestone: ${milestone.name}`,
+            `Rank unlocked: ${milestone.name}`,
             `${milestone.points} points reached!`
         );
     }

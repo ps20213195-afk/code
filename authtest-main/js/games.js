@@ -28,6 +28,7 @@ const builtInGames = [
 ];
 
 const externalGames = [
+  { name: 'PolyTrack', url: 'https://www.kodub.com/apps/polytrack', note: '3D racing and track editor · WebGL required' },
   { name: 'Poxel.io', url: 'https://poxel.io/', note: 'Multiplayer voxel shooter' },
   { name: 'Bloxd.io', url: 'https://bloxd.io/', note: 'Multiplayer block worlds' },
   { name: 'Shell Shockers', url: 'https://shellshock.io/', note: 'Online arena shooter' },
